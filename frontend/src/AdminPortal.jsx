@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api, { logout } from './api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Download, FileText, Upload, CheckCircle2, X } from 'lucide-react';
 
 export default function AdminPortal({ user }) {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -541,7 +542,7 @@ export default function AdminPortal({ user }) {
                               }
                             }}
                           >
-                            ⬇️ Download
+                            <Download size={14} /> Download
                           </button>
                         </td>
                         <td>
@@ -1115,18 +1116,27 @@ export default function AdminPortal({ user }) {
       {/* COMPLETE ORDER DIALOG MODAL */}
       {selectedOrder && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '480px', padding: '24px' }}>
-            <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '14px', color: 'var(--text-main)' }}>
-              Complete Order #{selectedOrder.id}
-            </h3>
+          <div className="modal-content" style={{ maxWidth: '480px', padding: '24px', borderRadius: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid var(--border-color)' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0, color: 'var(--text-main)' }}>
+                Complete Order #{selectedOrder.id}
+              </h3>
+              <button 
+                type="button"
+                onClick={() => setSelectedOrder(null)} 
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
             
-            <form onSubmit={handleCompleteOrderSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <form onSubmit={handleCompleteOrderSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               
-              <div style={{ backgroundColor: 'var(--bg-tertiary)', padding: '10px 12px', borderRadius: '6px', fontSize: '13px' }}>
-                <span style={{ color: 'var(--text-muted)' }}>File:</span> <strong style={{ color: 'var(--primary)' }}>{selectedOrder.document.split('/').pop()}</strong>
-                <span style={{ color: 'var(--text-muted)', marginLeft: '12px' }}>Words:</span> <strong>{selectedOrder.word_count}</strong>
+              <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                File: <strong style={{ color: 'var(--text-main)' }}>{selectedOrder.document.split('/').pop()}</strong> ({selectedOrder.word_count} words)
               </div>
 
+              {/* Similarity Score */}
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label">Similarity Score (%)</label>
                 <input 
@@ -1141,7 +1151,8 @@ export default function AdminPortal({ user }) {
                 />
               </div>
 
-              <div className="form-group" style={{ marginBottom: '6px' }}>
+              {/* Upload Report PDF Input */}
+              <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label">Verified PDF Report</label>
                 <input 
                   type="file" 
@@ -1152,12 +1163,19 @@ export default function AdminPortal({ user }) {
                 />
               </div>
 
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '4px' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setSelectedOrder(null)}>
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary" disabled={updatingOrder}>
-                  {updatingOrder ? "Submitting..." : "Submit Done"}
+                  {updatingOrder ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div className="spinner" style={{ width: '14px', height: '14px' }}></div>
+                      Dispatching...
+                    </div>
+                  ) : (
+                    "Submit Done"
+                  )}
                 </button>
               </div>
             </form>

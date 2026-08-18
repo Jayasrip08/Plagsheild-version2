@@ -1154,13 +1154,39 @@ export default function AdminPortal({ user }) {
               {/* Upload Report PDF Input */}
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label">Verified PDF Report</label>
-                <input 
-                  type="file" 
-                  accept=".pdf" 
-                  className="form-control" 
-                  required 
-                  onChange={(e) => setCompleteForm({ ...completeForm, report_file: e.target.files[0] })}
-                />
+                <div 
+                  className="dropzone"
+                  style={{ padding: '24px 16px', backgroundColor: completeForm.report_file ? '#f0f9ff' : '#ffffff', borderColor: completeForm.report_file ? 'var(--primary)' : 'var(--border-color)', borderRadius: '8px' }}
+                  onClick={() => document.getElementById('admin-report-pdf-input').click()}
+                >
+                  <input 
+                    id="admin-report-pdf-input"
+                    type="file" 
+                    accept=".pdf" 
+                    style={{ display: 'none' }}
+                    onChange={(e) => setCompleteForm({ ...completeForm, report_file: e.target.files[0] })}
+                  />
+                  <Upload size={24} color="var(--primary)" style={{ marginBottom: '8px' }} />
+                  {completeForm.report_file ? (
+                    <div>
+                      <div style={{ color: 'var(--primary)', fontWeight: 'bold', fontSize: '14px', marginBottom: '2px' }}>
+                        {completeForm.report_file.name}
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                        {(completeForm.report_file.size / 1024).toFixed(1)} KB • Click to change file
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-main)', marginBottom: '2px' }}>
+                        Drag & Drop or Click to Upload
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                        Supports PDF report formats (Max 20MB)
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '4px' }}>

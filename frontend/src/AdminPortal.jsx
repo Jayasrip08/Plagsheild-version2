@@ -1116,9 +1116,9 @@ export default function AdminPortal({ user }) {
       {/* COMPLETE ORDER DIALOG MODAL */}
       {selectedOrder && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '640px', width: '90%', padding: '32px', borderRadius: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid var(--border-color)' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0, color: 'var(--text-main)' }}>
+          <div className="modal-content" style={{ maxWidth: '640px', width: '90%', minHeight: '440px', padding: '40px', borderRadius: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '14px', borderBottom: '1px solid var(--border-color)' }}>
+              <h3 style={{ fontSize: '20px', fontWeight: 'bold', margin: 0, color: 'var(--text-main)' }}>
                 Complete Order #{selectedOrder.id}
               </h3>
               <button 
@@ -1126,11 +1126,11 @@ export default function AdminPortal({ user }) {
                 onClick={() => setSelectedOrder(null)} 
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
               >
-                <X size={18} />
+                <X size={20} />
               </button>
             </div>
             
-            <form onSubmit={handleCompleteOrderSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <form onSubmit={handleCompleteOrderSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px', flex: 1, justifyContent: 'space-between' }}>
               
               <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
                 File: <strong style={{ color: 'var(--text-main)' }}>{selectedOrder.document.split('/').pop()}</strong> ({selectedOrder.word_count} words)

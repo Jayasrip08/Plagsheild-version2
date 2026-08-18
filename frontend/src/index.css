@@ -220,6 +220,31 @@ a:hover {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
+/* Custom File Input Styling */
+input[type="file"].form-control {
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+input[type="file"].form-control::file-selector-button {
+  background-color: var(--bg-tertiary);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 6px 12px;
+  margin-right: 12px;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+input[type="file"].form-control::file-selector-button:hover {
+  background-color: #e2e8f0;
+  border-color: #cbd5e1;
+}
+
 /* Custom Professional Dropdown styling */
 select.form-control {
   appearance: none;

@@ -1114,19 +1114,39 @@ export default function AdminPortal({ user }) {
 
       {/* COMPLETE ORDER DIALOG MODAL */}
       {selectedOrder && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3 style={{ fontSize: '20px', marginBottom: '16px' }}>Upload Report & Complete Order #{selectedOrder.id}</h3>
+        <div className="modal-overlay" style={{ backdropFilter: 'blur(4px)' }}>
+          <div className="modal-content" style={{ maxWidth: '520px', padding: '32px', borderRadius: '12px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '14px', borderBottom: '1px solid var(--border-color)' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0, color: 'var(--text-main)' }}>
+                Complete Order #{selectedOrder.id}
+              </h3>
+              <button 
+                type="button"
+                onClick={() => setSelectedOrder(null)} 
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px' }}
+              >
+                ✕
+              </button>
+            </div>
             
-            <form onSubmit={handleCompleteOrderSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <form onSubmit={handleCompleteOrderSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               
-              <div style={{ backgroundColor: 'var(--bg-tertiary)', padding: '12px', borderRadius: '6px', fontSize: '13px', textAlign: 'left', marginBottom: '8px' }}>
-                File: <strong style={{ color: 'var(--secondary)' }}>{selectedOrder.document.split('/').pop()}</strong><br/>
-                Word Count: <strong>{selectedOrder.word_count} words</strong>
+              {/* Document Overview Metadata */}
+              <div style={{ backgroundColor: 'var(--bg-tertiary)', padding: '14px 16px', borderRadius: '8px', borderLeft: '3px solid var(--primary)' }}>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
+                  Target Document
+                </div>
+                <div style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--text-main)', marginBottom: '4px', wordBreak: 'break-word' }}>
+                  {selectedOrder.document.split('/').pop()}
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                  Word Count: <strong style={{ color: 'var(--text-main)' }}>{selectedOrder.word_count} words</strong>
+                </div>
               </div>
 
-              <div className="form-group" style={{ marginBottom: '0' }}>
-                <label className="form-label">Similarity Score (%)</label>
+              {/* Similarity Score */}
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ fontWeight: '600', fontSize: '13px' }}>Similarity Score (%)</label>
                 <input 
                   type="number" 
                   min="0" 
@@ -1139,23 +1159,57 @@ export default function AdminPortal({ user }) {
                 />
               </div>
 
-              <div className="form-group" style={{ marginBottom: '12px' }}>
-                <label className="form-label">Verified PDF Plagiarism Report</label>
-                <input 
-                  type="file" 
-                  accept=".pdf" 
-                  className="form-control" 
-                  required 
-                  onChange={(e) => setCompleteForm({ ...completeForm, report_file: e.target.files[0] })}
-                />
+              {/* Upload Report PDF Input */}
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ fontWeight: '600', fontSize: '13px' }}>Verified PDF Report</label>
+                <div 
+                  className="dropzone"
+                  style={{ padding: '24px 16px', backgroundColor: completeForm.report_file ? '#f0f9ff' : '#ffffff', borderColor: completeForm.report_file ? 'var(--primary)' : 'var(--border-color)', borderRadius: '8px' }}
+                  onClick={() => document.getElementById('report-pdf-input').click()}
+                >
+                  <input 
+                    id="report-pdf-input"
+                    type="file" 
+                    accept=".pdf" 
+                    style={{ display: 'none' }}
+                    required={!completeForm.report_file}
+                    onChange={(e) => setCompleteForm({ ...completeForm, report_file: e.target.files[0] })}
+                  />
+                  {completeForm.report_file ? (
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ color: 'var(--primary)', fontWeight: 'bold', fontSize: '14px', marginBottom: '2px' }}>
+                        📄 {completeForm.report_file.name}
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                        {(completeForm.report_file.size / 1024).toFixed(1)} KB • Click to replace PDF report
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--primary)', marginBottom: '2px' }}>
+                        Click to select PDF report file
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                        Upload official Turnitin / verification result document
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setSelectedOrder(null)}>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '8px' }}>
+                <button type="button" className="btn btn-secondary" style={{ padding: '10px 20px' }} onClick={() => setSelectedOrder(null)}>
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary" disabled={updatingOrder}>
-                  {updatingOrder ? "Dispatching..." : "Submit Done"}
+                <button type="submit" className="btn btn-primary" style={{ padding: '10px 24px' }} disabled={updatingOrder || !completeForm.report_file}>
+                  {updatingOrder ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div className="spinner" style={{ width: '16px', height: '16px' }}></div>
+                      Dispatching Report...
+                    </div>
+                  ) : (
+                    "Complete & Dispatch Report"
+                  )}
                 </button>
               </div>
             </form>

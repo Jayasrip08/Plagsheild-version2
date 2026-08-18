@@ -1,9 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import api, { logout } from './api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { 
+  LayoutDashboard, 
+  FileText, 
+  Users, 
+  User, 
+  LogOut, 
+  AlertTriangle, 
+  Download, 
+  Filter, 
+  RotateCcw, 
+  UserPlus, 
+  FileSpreadsheet, 
+  CheckCircle2, 
+  School 
+} from 'lucide-react';
+import ProfilePage from './ProfilePage';
 
 export default function CollegePortal({ user }) {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [studentSubTab, setStudentSubTab] = useState('roster'); // 'roster', 'single', 'csv'
   const [stats, setStats] = useState(null);
   const [loadingStats, setLoadingStats] = useState(true);
   
@@ -160,31 +177,58 @@ export default function CollegePortal({ user }) {
     <div className="dashboard-layout">
       {/* Sidebar Navigation */}
       <aside className="sidebar">
-        <div className="logo">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-            <line x1="9" y1="3" x2="9" y2="21"/>
-          </svg>
-          College Admin
+        <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <School size={24} style={{ color: 'var(--primary)' }} />
+          <span>College Admin</span>
         </div>
         <div className="sidebar-nav">
           <button 
             className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`}
             onClick={() => setActiveTab('dashboard')}
+            style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
           >
+            <LayoutDashboard size={18} />
             Dashboard Overview
           </button>
           <button 
             className={`nav-link ${activeTab === 'submissions' ? 'active' : ''}`}
             onClick={() => setActiveTab('submissions')}
+            style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
           >
+            <FileText size={18} />
             Submissions Audit Log
           </button>
           <button 
-            className={`nav-link ${activeTab === 'students' ? 'active' : ''}`}
-            onClick={() => setActiveTab('students')}
+            className={`nav-link ${activeTab === 'students' && studentSubTab === 'directory' ? 'active' : ''}`}
+            onClick={() => { setActiveTab('students'); setStudentSubTab('directory'); }}
+            style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
           >
+            <Users size={18} />
             Student Roster
+          </button>
+          <button 
+            className={`nav-link ${activeTab === 'students' && studentSubTab === 'single' ? 'active' : ''}`}
+            onClick={() => { setActiveTab('students'); setStudentSubTab('single'); }}
+            style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
+          >
+            <UserPlus size={18} />
+            Register Student
+          </button>
+          <button 
+            className={`nav-link ${activeTab === 'students' && studentSubTab === 'csv' ? 'active' : ''}`}
+            onClick={() => { setActiveTab('students'); setStudentSubTab('csv'); }}
+            style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
+          >
+            <FileSpreadsheet size={18} />
+            CSV Batch Import
+          </button>
+          <button 
+            className={`nav-link ${activeTab === 'profile' ? 'active' : ''}`}
+            onClick={() => setActiveTab('profile')}
+            style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
+          >
+            <User size={18} />
+            My Profile
           </button>
         </div>
         <div style={{ marginTop: 'auto', padding: '16px 0' }}>
@@ -192,14 +236,15 @@ export default function CollegePortal({ user }) {
             College Name:<br/>
             <strong style={{ color: 'var(--text-main)' }}>{user.college_name || "College"}</strong>
           </div>
-          <button className="btn btn-secondary" style={{ width: '100%' }} onClick={logout}>
+          <button className="btn btn-secondary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={logout}>
+            <LogOut size={16} />
             Logout
           </button>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <main style={{ padding: '40px', overflowY: 'auto', textAlign: 'left' }}>
+      <main className="dashboard-main">
         
         {/* TAB 1: OVERVIEW DASHBOARD */}
         {activeTab === 'dashboard' && (
@@ -225,8 +270,8 @@ export default function CollegePortal({ user }) {
                       {stats.credits_remaining} <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: 'normal' }}>/ {stats.allocated_credits}</span>
                     </div>
                     {stats.low_credit_alert && (
-                      <div style={{ color: 'var(--danger)', fontSize: '12px', marginTop: '8px', fontWeight: '600' }}>
-                        ⚠️ Low balance! Less than 20% remaining.
+                      <div style={{ color: 'var(--danger)', fontSize: '12px', marginTop: '8px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <AlertTriangle size={14} /> Low balance! Less than 20% remaining.
                       </div>
                     )}
                   </div>
@@ -312,8 +357,8 @@ export default function CollegePortal({ user }) {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
               <h2 style={{ fontSize: '26px' }}>Submissions Audit Log (NAAC Verification)</h2>
-              <button className="btn btn-accent" style={{ color: 'var(--bg-primary)' }} onClick={triggerExport}>
-                📥 Export CSV Report
+              <button className="btn btn-accent" style={{ color: 'var(--bg-primary)', display: 'flex', alignItems: 'center', gap: '8px' }} onClick={triggerExport}>
+                <Download size={16} /> Export CSV Report
               </button>
             </div>
 
@@ -373,11 +418,11 @@ export default function CollegePortal({ user }) {
               </div>
 
               <div style={{ display: 'flex', gap: '8px' }}>
-                <button type="submit" className="btn btn-primary" style={{ flex: '1', padding: '12px' }}>
-                  Filter
+                <button type="submit" className="btn btn-primary" style={{ flex: '1', padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                  <Filter size={16} /> Filter
                 </button>
-                <button type="button" className="btn btn-secondary" style={{ padding: '12px' }} onClick={handleFilterClear}>
-                  Clear
+                <button type="button" className="btn btn-secondary" style={{ padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }} onClick={handleFilterClear}>
+                  <RotateCcw size={16} /> Clear
                 </button>
               </div>
             </form>
@@ -435,135 +480,32 @@ export default function CollegePortal({ user }) {
 
         {/* TAB 3: STUDENT ROSTER & REGISTRATION */}
         {activeTab === 'students' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '32px' }}>
-            
-            {/* Student Registration Panels */}
-            <div>
-              {/* Individual additions */}
-              <div className="glass-card" style={{ marginBottom: '24px' }}>
-                <h3 style={{ fontSize: '18px', marginBottom: '16px' }}>Add Single Student</h3>
-                <form onSubmit={handleSingleStudentSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div className="form-group" style={{ marginBottom: '0' }}>
-                    <input 
-                      type="text" 
-                      placeholder="Username" 
-                      className="form-control" 
-                      required 
-                      value={newStudent.username}
-                      onChange={(e) => setNewStudent({ ...newStudent, username: e.target.value })}
-                    />
-                  </div>
-                  <div className="form-group" style={{ marginBottom: '0' }}>
-                    <input 
-                      type="email" 
-                      placeholder="Email Address" 
-                      className="form-control" 
-                      required
-                      value={newStudent.email}
-                      onChange={(e) => setNewStudent({ ...newStudent, email: e.target.value })}
-                    />
-                  </div>
-                  <div className="form-group" style={{ marginBottom: '0' }}>
-                    <input 
-                      type="password" 
-                      placeholder="Password" 
-                      className="form-control" 
-                      required
-                      value={newStudent.password}
-                      onChange={(e) => setNewStudent({ ...newStudent, password: e.target.value })}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <input 
-                      type="text" 
-                      placeholder="First Name" 
-                      className="form-control" 
-                      value={newStudent.first_name}
-                      onChange={(e) => setNewStudent({ ...newStudent, first_name: e.target.value })}
-                    />
-                    <input 
-                      type="text" 
-                      placeholder="Last Name" 
-                      className="form-control" 
-                      value={newStudent.last_name}
-                      onChange={(e) => setNewStudent({ ...newStudent, last_name: e.target.value })}
-                    />
-                  </div>
-                  <div className="form-group" style={{ marginBottom: '12px' }}>
-                    <input 
-                      type="text" 
-                      placeholder="Department (e.g. CSE, EEE)" 
-                      className="form-control" 
-                      value={newStudent.department}
-                      onChange={(e) => setNewStudent({ ...newStudent, department: e.target.value })}
-                    />
-                  </div>
-                  <button type="submit" className="btn btn-primary" disabled={addingStudent}>
-                    {addingStudent ? "Adding..." : "Register Student"}
-                  </button>
-                </form>
-              </div>
-
-              {/* CSV Upload */}
-              <div className="glass-card">
-                <h3 style={{ fontSize: '18px', marginBottom: '8px' }}>CSV Student Import</h3>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>
-                  Upload a CSV file containing: <code>username, email, first_name, last_name, department</code>
-                </p>
-                <form onSubmit={handleCsvUpload} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <input 
-                    type="file" 
-                    accept=".csv" 
-                    className="form-control"
-                    required
-                    onChange={(e) => setCsvFile(e.target.files[0])}
-                  />
-                  <button type="submit" className="btn btn-secondary" disabled={uploadingCsv || !csvFile}>
-                    {uploadingCsv ? "Processing CSV..." : "Upload CSV File"}
-                  </button>
-                </form>
-
-                {csvResult && (
-                  <div style={{ marginTop: '16px', padding: '12px', background: 'var(--bg-tertiary)', borderRadius: '6px', fontSize: '13px' }}>
-                    <div style={{ color: 'var(--success)', fontWeight: 'bold', marginBottom: '8px' }}>
-                      {csvResult.message}
-                    </div>
-                    {csvResult.created && csvResult.created.length > 0 && (
-                      <div style={{ overflowY: 'auto', maxHeight: '160px', borderTop: '1px solid var(--border-color)', paddingTop: '8px' }}>
-                        <p style={{ fontWeight: '600', marginBottom: '4px' }}>Logins list generated:</p>
-                        {csvResult.created.map((item, index) => (
-                          <div key={index} style={{ marginBottom: '6px', color: 'var(--text-muted)' }}>
-                            User: <strong style={{ color: 'var(--text-main)' }}>{item.username}</strong> • Pass: <strong style={{ color: 'var(--secondary)' }}>{item.password}</strong> ({item.department})
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {csvResult.errors && csvResult.errors.length > 0 && (
-                      <div style={{ color: 'var(--danger)', marginTop: '8px' }}>
-                        <strong>Errors:</strong>
-                        {csvResult.errors.map((err, i) => <div key={i}>{err}</div>)}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+          <div>
+            <div style={{ marginBottom: '24px' }}>
+              <h2 style={{ fontSize: '26px', marginBottom: '4px' }}>Student Management Roster</h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
+                View enrolled student accounts, add single accounts, or batch import CSV files.
+              </p>
             </div>
 
-            {/* Students list */}
-            <div>
-              <div className="glass-card" style={{ minHeight: '400px' }}>
-                <h3 style={{ fontSize: '18px', marginBottom: '16px' }}>Registered Students ({students.length})</h3>
+            {/* SUB-TAB 1: STUDENT DIRECTORY ROSTER */}
+            {studentSubTab === 'roster' && (
+              <div className="glass-card">
+                <h3 style={{ fontSize: '18px', marginBottom: '16px' }}>Registered Students Directory</h3>
                 {loadingStudents ? (
                   <div className="spinner"></div>
                 ) : students.length === 0 ? (
-                  <p style={{ color: 'var(--text-muted)' }}>No students registered under your college yet.</p>
+                  <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                    No students registered under your college yet. Use the sub-tabs above to add students.
+                  </div>
                 ) : (
-                  <div className="table-container" style={{ maxHeight: '420px', overflowY: 'auto' }}>
+                  <div className="table-container">
                     <table className="custom-table">
                       <thead>
                         <tr>
-                          <th>Name</th>
-                          <th>Email</th>
+                          <th>Student Name</th>
+                          <th>Username</th>
+                          <th>Email Address</th>
                           <th>Department</th>
                         </tr>
                       </thead>
@@ -572,11 +514,13 @@ export default function CollegePortal({ user }) {
                           <tr key={student.id}>
                             <td>
                               <strong>{student.first_name} {student.last_name}</strong>
-                              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>@{student.username}</div>
+                            </td>
+                            <td>
+                              <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>@{student.username}</span>
                             </td>
                             <td>{student.email}</td>
                             <td>
-                              <span style={{ padding: '2px 8px', background: 'var(--bg-tertiary)', borderRadius: '4px', fontSize: '12px' }}>
+                              <span style={{ padding: '2px 8px', background: 'var(--bg-tertiary)', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>
                                 {student.department || 'General'}
                               </span>
                             </td>
@@ -587,9 +531,232 @@ export default function CollegePortal({ user }) {
                   </div>
                 )}
               </div>
-            </div>
+            )}
 
+            {/* SUB-TAB 2: ADD SINGLE STUDENT FORM */}
+            {studentSubTab === 'single' && (
+              <div className="glass-card">
+                <h3 style={{ fontSize: '18px', marginBottom: '16px' }}>Register New Student</h3>
+                <form onSubmit={handleSingleStudentSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label">Username</label>
+                    <input 
+                      type="text" 
+                      placeholder="Username" 
+                      className="form-control" 
+                      required 
+                      value={newStudent.username}
+                      onChange={(e) => setNewStudent({ ...newStudent, username: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label">Email Address</label>
+                    <input 
+                      type="email" 
+                      placeholder="student@college.edu" 
+                      className="form-control" 
+                      required
+                      value={newStudent.email}
+                      onChange={(e) => setNewStudent({ ...newStudent, email: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label">Default Password</label>
+                    <input 
+                      type="password" 
+                      placeholder="••••••••" 
+                      className="form-control" 
+                      required
+                      value={newStudent.password}
+                      onChange={(e) => setNewStudent({ ...newStudent, password: e.target.value })}
+                    />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label">First Name</label>
+                      <input 
+                        type="text" 
+                        placeholder="First Name" 
+                        className="form-control" 
+                        value={newStudent.first_name}
+                        onChange={(e) => setNewStudent({ ...newStudent, first_name: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label">Last Name</label>
+                      <input 
+                        type="text" 
+                        placeholder="Last Name" 
+                        className="form-control" 
+                        value={newStudent.last_name}
+                        onChange={(e) => setNewStudent({ ...newStudent, last_name: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: '8px' }}>
+                    <label className="form-label">Department</label>
+                    <select 
+                      className="form-control" 
+                      value={newStudent.department || 'Computer Science'}
+                      onChange={(e) => setNewStudent({ ...newStudent, department: e.target.value })}
+                    >
+                      <option value="Computer Science">Computer Science</option>
+                      <option value="Electrical and Electronics">Electrical and Electronics</option>
+                      <option value="Civil Engineering">Civil Engineering</option>
+                      <option value="Information Technology">Information Technology</option>
+                      <option value="Mechanical Engineering">Mechanical Engineering</option>
+                      <option value="Others">Others</option>
+                    </select>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '8px' }}>
+                    <button type="button" className="btn btn-secondary" onClick={() => setStudentSubTab('roster')}>
+                      Cancel
+                    </button>
+                    <button type="submit" className="btn btn-primary" disabled={addingStudent}>
+                      {addingStudent ? "Registering..." : "Register Student"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* SUB-TAB 3: BULK CSV IMPORT FORM */}
+            {studentSubTab === 'csv' && (
+              <div className="glass-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '16px' }}>
+                  <div>
+                    <h3 style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>CSV Student Batch Import</h3>
+                  </div>
+                  <button 
+                    className="btn btn-secondary" 
+                    style={{ fontSize: '13px' }}
+                    onClick={() => {
+                      const csvContent = "data:text/csv;charset=utf-8,username,email,first_name,last_name,department\njohn_doe,john@democollege.edu,John,Doe,Computer Science\njane_smith,jane@democollege.edu,Jane,Smith,Information technology";
+                      const encodedUri = encodeURI(csvContent);
+                      const link = document.createElement("a");
+                      link.setAttribute("href", encodedUri);
+                      link.setAttribute("download", "student_batch_import_template.csv");
+                      document.body.appendChild(link);
+                      link.click();
+                      link.remove();
+                    }}
+                  >
+                    <Download size={15} /> Download Sample CSV Template
+                  </button>
+                </div>
+
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '20px' }}>
+                  <strong>Note:</strong> Upload a <code>.csv</code> file containing the required column headers: <code>username, email, first_name, last_name, department</code>
+                </p>
+
+                <form onSubmit={handleCsvUpload} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div 
+                    className="dropzone"
+                    style={{ padding: '36px 20px', backgroundColor: csvFile ? '#f0f9ff' : '#ffffff', borderColor: csvFile ? 'var(--primary)' : 'var(--border-color)' }}
+                    onClick={() => document.getElementById('csv-file-input').click()}
+                  >
+                    <input 
+                      id="csv-file-input"
+                      type="file" 
+                      accept=".csv" 
+                      style={{ display: 'none' }}
+                      onChange={(e) => setCsvFile(e.target.files[0])}
+                    />
+                    <FileSpreadsheet size={36} color="var(--primary)" style={{ marginBottom: '10px' }} />
+                    {csvFile ? (
+                      <div>
+                        <h4 style={{ color: 'var(--primary)', fontWeight: 'bold', marginBottom: '4px' }}>{csvFile.name}</h4>
+                        <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                          {(csvFile.size / 1024).toFixed(1)} KB • Click to replace file
+                        </p>
+                      </div>
+                    ) : (
+                      <div>
+                        <h4 style={{ fontSize: '15px', fontWeight: '600', marginBottom: '4px' }}>
+                          Click or drag and drop your <code>.csv</code> file here
+                        </h4>
+                        <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                          Supports UTF-8 formatted CSV spreadsheets up to 10MB
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                    <button type="button" className="btn btn-secondary" onClick={() => { setStudentSubTab('roster'); setCsvFile(null); setCsvResult(null); }}>
+                      Cancel
+                    </button>
+                    <button type="submit" className="btn btn-primary" style={{ padding: '10px 24px' }} disabled={uploadingCsv || !csvFile}>
+                      {uploadingCsv ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div className="spinner" style={{ width: '16px', height: '16px' }}></div>
+                          Importing Students...
+                        </div>
+                      ) : (
+                        "Start Batch Import"
+                      )}
+                    </button>
+                  </div>
+                </form>
+
+                {/* Import Results Table */}
+                {csvResult && (
+                  <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid var(--border-color)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--success)', fontWeight: 'bold', fontSize: '15px', marginBottom: '16px' }}>
+                      <CheckCircle2 size={18} /> {csvResult.message}
+                    </div>
+
+                    {csvResult.created && csvResult.created.length > 0 && (
+                      <div>
+                        <h4 style={{ fontSize: '13px', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '12px', color: 'var(--text-muted)' }}>
+                          Generated Student Credentials ({csvResult.created.length})
+                        </h4>
+                        <div className="table-container" style={{ maxHeight: '250px', overflowY: 'auto' }}>
+                          <table className="custom-table">
+                            <thead>
+                              <tr>
+                                <th>Username</th>
+                                <th>Generated Password</th>
+                                <th>Department</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {csvResult.created.map((item, index) => (
+                                <tr key={index}>
+                                  <td><strong>{item.username}</strong></td>
+                                  <td><code style={{ background: '#f1f5f9', padding: '4px 8px', borderRadius: '4px', color: 'var(--primary)', fontWeight: 'bold' }}>{item.password}</code></td>
+                                  <td>{item.department || 'N/A'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {csvResult.errors && csvResult.errors.length > 0 && (
+                      <div style={{ marginTop: '16px', padding: '12px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '6px', color: '#991b1b', fontSize: '13px' }}>
+                        <strong>Validation Alerts:</strong>
+                        <ul style={{ marginTop: '6px', paddingLeft: '20px', marginBottom: 0 }}>
+                          {csvResult.errors.map((err, i) => <li key={i}>{err}</li>)}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
+        )}
+
+        {/* TAB 4: PROFILE */}
+        {activeTab === 'profile' && (
+          <ProfilePage user={user} />
         )}
 
       </main>

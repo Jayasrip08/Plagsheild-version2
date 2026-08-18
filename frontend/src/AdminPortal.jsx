@@ -17,6 +17,7 @@ export default function AdminPortal({ user }) {
   // College management
   const [colleges, setColleges] = useState([]);
   const [loadingColleges, setLoadingColleges] = useState(false);
+  const [collegeSubTab, setCollegeSubTab] = useState('list'); // 'list', 'create', 'allocate'
   const [newCollege, setNewCollege] = useState({ college_name: '', credits: 100, contact_email: '', admin_username: '', admin_password: '' });
   const [addingCollege, setAddingCollege] = useState(false);
   const [allocateData, setAllocateData] = useState({ college_id: '', credits: '', admin_username: '', admin_email: '', admin_password: '' });
@@ -263,28 +264,67 @@ export default function AdminPortal({ user }) {
         </div>
         <div className="sidebar-nav">
           <button className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>
-            <span className="nav-icon">📊</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="3" width="7" height="9"/>
+              <rect x="14" y="3" width="7" height="5"/>
+              <rect x="14" y="12" width="7" height="9"/>
+              <rect x="3" y="16" width="7" height="5"/>
+            </svg>
             <span>BI Dashboard</span>
           </button>
           <button className={`nav-link ${activeTab === 'queue' ? 'active' : ''}`} onClick={() => { setActiveTab('queue'); fetchQueue(); }}>
-            <span className="nav-icon">🕒</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
             <span>Pending Queue</span>
             <span className="nav-badge">{queue.length}</span>
           </button>
           <button className={`nav-link ${activeTab === 'history' ? 'active' : ''}`} onClick={() => { setActiveTab('history'); fetchHistory(); }}>
-            <span className="nav-icon">📁</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <polyline points="10 9 9 9 8 9"/>
+            </svg>
             <span>Order History</span>
           </button>
-          <button className={`nav-link ${activeTab === 'colleges' ? 'active' : ''}`} onClick={() => setActiveTab('colleges')}>
-            <span className="nav-icon">🏫</span>
-            <span>Colleges Manager</span>
+          <button className={`nav-link ${activeTab === 'colleges' && collegeSubTab === 'list' ? 'active' : ''}`} onClick={() => { setActiveTab('colleges'); setCollegeSubTab('list'); }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+              <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+            </svg>
+            <span>Colleges Directory</span>
+          </button>
+          <button className={`nav-link ${activeTab === 'colleges' && collegeSubTab === 'create' ? 'active' : ''}`} onClick={() => { setActiveTab('colleges'); setCollegeSubTab('create'); }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            <span>Register College</span>
+          </button>
+          <button className={`nav-link ${activeTab === 'colleges' && collegeSubTab === 'allocate' ? 'active' : ''}`} onClick={() => { setActiveTab('colleges'); setCollegeSubTab('allocate'); }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="16"/>
+              <line x1="8" y1="12" x2="16" y2="12"/>
+            </svg>
+            <span>Allocate Credits</span>
           </button>
           <button className={`nav-link ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')}>
-            <span className="nav-icon">🔒</span>
-            <span>User Lockout tool</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            <span>User Management</span>
           </button>
           <button className={`nav-link ${activeTab === 'pricing' ? 'active' : ''}`} onClick={() => setActiveTab('pricing')}>
-            <span className="nav-icon">💰</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="12" y1="1" x2="12" y2="23"/>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
             <span>Pricing Configuration</span>
           </button>
         </div>
@@ -300,7 +340,7 @@ export default function AdminPortal({ user }) {
       </aside>
 
       {/* Main Content Area */}
-      <main style={{ padding: '40px', overflowY: 'auto', textAlign: 'left' }}>
+      <main className="dashboard-main">
         
         {/* TAB 1: BI DASHBOARD */}
         {activeTab === 'dashboard' && (
@@ -461,11 +501,11 @@ export default function AdminPortal({ user }) {
                       >
                         <td>
                           {order.is_express ? (
-                            <span style={{ fontSize: '11px', padding: '4px 8px', background: 'rgba(239, 68, 68, 0.15)', color: 'var(--danger)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '4px', fontWeight: 'bold' }}>
+                            <span style={{ fontSize: '11px', padding: '4px 10px', background: '#fee2e2', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: '4px', fontWeight: '700', whiteSpace: 'nowrap', display: 'inline-block' }}>
                               ⚡ EXPRESS PRIORITY
                             </span>
                           ) : (
-                            <span style={{ color: 'var(--text-dark)', fontSize: '12px' }}>Standard</span>
+                            <span style={{ color: 'var(--text-muted)', fontSize: '13px', fontWeight: '500' }}>Standard</span>
                           )}
                         </td>
                         <td>#{order.id}</td>
@@ -483,16 +523,26 @@ export default function AdminPortal({ user }) {
                           </span>
                         </td>
                         <td>
-                          <a 
-                            href={`http://localhost:8000${order.document}`} 
-                            download 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
+                          <button 
                             className="btn btn-secondary"
                             style={{ padding: '6px 12px', fontSize: '12px' }}
+                            onClick={async () => {
+                              try {
+                                const response = await api.get(order.document, { responseType: 'blob' });
+                                const url = window.URL.createObjectURL(new Blob([response.data]));
+                                const link = document.createElement('a');
+                                link.href = url;
+                                link.setAttribute('download', order.document.split('/').pop());
+                                document.body.appendChild(link);
+                                link.click();
+                                link.remove();
+                              } catch (err) {
+                                window.open(order.document, '_blank');
+                              }
+                            }}
                           >
                             ⬇️ Download
-                          </a>
+                          </button>
                         </td>
                         <td>
                           <div style={{ display: 'flex', gap: '8px' }}>
@@ -610,33 +660,35 @@ export default function AdminPortal({ user }) {
                     Clear Selection
                   </button>
                 </div>
-                <div className="detail-grid">
+                <div className="detail-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px', marginTop: '16px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
                   <div className="detail-item">
-                    <div className="detail-label">User</div>
-                    <div><strong>{selectedHistoryOrder.user_details?.username || selectedHistoryOrder.user}</strong></div>
-                    <div style={{ color: 'var(--text-muted)' }}>{selectedHistoryOrder.user_details?.email || 'No email'}</div>
+                    <div className="detail-label" style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Order ID</div>
+                    <div style={{ fontSize: '15px', fontWeight: 'bold', color: 'var(--primary)' }}>#{selectedHistoryOrder.id}</div>
                   </div>
                   <div className="detail-item">
-                    <div className="detail-label">Document</div>
-                    <div title={selectedHistoryOrder.document?.split('/').pop() || 'N/A'} style={{ fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {selectedHistoryOrder.document?.split('/').pop() || 'N/A'}
+                    <div className="detail-label" style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>User</div>
+                    <div><strong>{selectedHistoryOrder.user_details?.username || selectedHistoryOrder.user}</strong></div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{selectedHistoryOrder.user_details?.email || 'No email'}</div>
+                  </div>
+                  <div className="detail-item">
+                    <div className="detail-label" style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mode</div>
+                    <div><strong>{selectedHistoryOrder.is_b2b ? 'B2B Credit' : 'B2C Cash'}</strong></div>
+                  </div>
+                  <div className="detail-item">
+                    <div className="detail-label" style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</div>
+                    <div>
+                      <span className={`badge badge-${selectedHistoryOrder.status.toLowerCase().replace(' ', '-')}`}>
+                        {selectedHistoryOrder.status}
+                      </span>
                     </div>
                   </div>
                   <div className="detail-item">
-                    <div className="detail-label">Mode</div>
-                    <div>{selectedHistoryOrder.is_b2b ? 'B2B Credit' : 'B2C Cash'}</div>
+                    <div className="detail-label" style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Words</div>
+                    <div><strong>{selectedHistoryOrder.word_count} words</strong></div>
                   </div>
                   <div className="detail-item">
-                    <div className="detail-label">Status</div>
-                    <div>{selectedHistoryOrder.status}</div>
-                  </div>
-                  <div className="detail-item">
-                    <div className="detail-label">Words</div>
-                    <div>{selectedHistoryOrder.word_count}</div>
-                  </div>
-                  <div className="detail-item">
-                    <div className="detail-label">Price</div>
-                    <div>₹{parseFloat(selectedHistoryOrder.price || 0).toFixed(2)}</div>
+                    <div className="detail-label" style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Price</div>
+                    <div style={{ color: 'var(--success)', fontWeight: 'bold' }}>₹{parseFloat(selectedHistoryOrder.price || 0).toFixed(2)}</div>
                   </div>
                 </div>
               </div>
@@ -646,113 +698,166 @@ export default function AdminPortal({ user }) {
 
         {/* TAB 4: COLLEGES MANAGER */}
         {activeTab === 'colleges' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
-            {/* Left: Create & Allocate */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              
-              {/* Create College */}
+          <div>
+            <div style={{ marginBottom: '24px' }}>
+              <h2 style={{ fontSize: '26px' }}>Colleges Management</h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
+                Manage registered institutional accounts, allocate B2B credits, and create college admins.
+              </p>
+            </div>
+
+            {/* Sub-tab 1: Directory List */}
+            {collegeSubTab === 'list' && (
               <div className="glass-card">
-                <h3 style={{ fontSize: '18px', marginBottom: '16px' }}>Register New College Account</h3>
-                <form onSubmit={handleCreateCollege} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <h3 style={{ fontSize: '18px', marginBottom: '16px' }}>Registered Institutional Accounts</h3>
+                {loadingColleges ? (
+                  <div className="spinner"></div>
+                ) : colleges.length === 0 ? (
+                  <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                    No colleges registered yet. Click "Register College" to add one.
+                  </div>
+                ) : (
+                  <div className="table-container">
+                    <table className="custom-table">
+                      <thead>
+                        <tr>
+                          <th>ID</th>
+                          <th>Institution Name</th>
+                          <th>Billing Contact</th>
+                          <th>Credit Balance</th>
+                          <th>Admin Account</th>
+                          <th>Registered Date</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {colleges.map(c => (
+                          <tr key={c.id}>
+                            <td>#{c.id}</td>
+                            <td>
+                              <strong>{c.college_name}</strong>
+                            </td>
+                            <td>{c.contact_email}</td>
+                            <td>
+                              <strong style={{ fontSize: '15px', color: 'var(--primary)' }}>{c.credits} Credits</strong>
+                              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Allocated: {c.allocated_credits}</div>
+                            </td>
+                            <td>
+                              {c.admin_username ? (
+                                <div>
+                                  <strong>@{c.admin_username}</strong>
+                                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{c.admin_email}</div>
+                                </div>
+                              ) : (
+                                <span style={{ color: 'var(--danger)', fontSize: '12px' }}>Unassigned</span>
+                              )}
+                            </td>
+                            <td>{new Date(c.created_at).toLocaleDateString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Sub-tab 2: Register New College Form */}
+            {collegeSubTab === 'create' && (
+              <div className="glass-card">
+                <h3 style={{ fontSize: '20px', marginBottom: '8px' }}>Register New Institutional Account</h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '20px' }}>
+                  Add a new college or university to issue B2B plagiarism verification credits.
+                </p>
+                <form onSubmit={async (e) => { await handleCreateCollege(e); setCollegeSubTab('list'); }} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <div className="form-group" style={{ marginBottom: '0' }}>
-                    <input type="text" placeholder="College Name" className="form-control" required value={newCollege.college_name} onChange={(e) => setNewCollege({ ...newCollege, college_name: e.target.value })} />
+                    <label className="form-label">College / Institution Name</label>
+                    <input type="text" placeholder="e.g. Stanford University" className="form-control" required value={newCollege.college_name} onChange={(e) => setNewCollege({ ...newCollege, college_name: e.target.value })} />
                   </div>
                   <div className="form-group" style={{ marginBottom: '0' }}>
-                    <input type="email" placeholder="Billing / Contact Email" className="form-control" required value={newCollege.contact_email} onChange={(e) => setNewCollege({ ...newCollege, contact_email: e.target.value })} />
+                    <label className="form-label">Billing / Contact Email</label>
+                    <input type="email" placeholder="admin@stanford.edu" className="form-control" required value={newCollege.contact_email} onChange={(e) => setNewCollege({ ...newCollege, contact_email: e.target.value })} />
                   </div>
                   <div className="form-group" style={{ marginBottom: '0' }}>
-                    <input type="number" placeholder="Initial Credits Balance" className="form-control" required value={newCollege.credits} onChange={(e) => setNewCollege({ ...newCollege, credits: e.target.value })} />
+                    <label className="form-label">Initial Credits Allocation</label>
+                    <input type="number" placeholder="100" className="form-control" required value={newCollege.credits} onChange={(e) => setNewCollege({ ...newCollege, credits: e.target.value })} />
                   </div>
                   
-                  <div style={{ borderTop: '1px solid var(--border-color)', marginTop: '8px', paddingTop: '8px' }}>
-                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>Create College Administrator Account (Optional)</p>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <input type="text" placeholder="Admin Username" className="form-control" value={newCollege.admin_username} onChange={(e) => setNewCollege({ ...newCollege, admin_username: e.target.value })} />
-                      <input type="password" placeholder="Admin Password" className="form-control" value={newCollege.admin_password} onChange={(e) => setNewCollege({ ...newCollege, admin_password: e.target.value })} />
+                  <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '14px', marginTop: '4px' }}>
+                    <p style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-main)', marginBottom: '10px' }}>College Admin Credentials (Optional)</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div className="form-group" style={{ marginBottom: '0' }}>
+                        <label className="form-label">Admin Username</label>
+                        <input type="text" placeholder="stanford_admin" className="form-control" value={newCollege.admin_username} onChange={(e) => setNewCollege({ ...newCollege, admin_username: e.target.value })} />
+                      </div>
+                      <div className="form-group" style={{ marginBottom: '0' }}>
+                        <label className="form-label">Admin Password</label>
+                        <input type="password" placeholder="••••••••" className="form-control" value={newCollege.admin_password} onChange={(e) => setNewCollege({ ...newCollege, admin_password: e.target.value })} />
+                      </div>
                     </div>
                   </div>
 
-                  <button type="submit" className="btn btn-primary" style={{ marginTop: '8px' }} disabled={addingCollege}>
-                    {addingCollege ? "Registering..." : "Create College Account"}
-                  </button>
+                  <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '12px' }}>
+                    <button type="button" className="btn btn-secondary" onClick={() => setCollegeSubTab('list')}>
+                      Cancel
+                    </button>
+                    <button type="submit" className="btn btn-primary" disabled={addingCollege}>
+                      {addingCollege ? "Registering..." : "Create College Account"}
+                    </button>
+                  </div>
                 </form>
               </div>
+            )}
 
-              {/* Allocate Credits */}
+            {/* Sub-tab 3: Allocate Credits Form */}
+            {collegeSubTab === 'allocate' && (
               <div className="glass-card">
-                <h3 style={{ fontSize: '18px', marginBottom: '16px' }}>Allocate Credits & Update Admin</h3>
-                <form onSubmit={handleAllocateCredits} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <h3 style={{ fontSize: '20px', marginBottom: '8px' }}>Allocate Credits & Update Admin</h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '20px' }}>
+                  Refill B2B verification credits or update college administrator details.
+                </p>
+                <form onSubmit={async (e) => { await handleAllocateCredits(e); setCollegeSubTab('list'); }} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <div className="form-group" style={{ marginBottom: '0' }}>
-                    <label className="form-label">Select College</label>
+                    <label className="form-label">Select Institution</label>
                     <select className="form-control" required value={allocateData.college_id} onChange={(e) => setAllocateData({ ...allocateData, college_id: e.target.value })}>
                       <option value="">-- Choose College --</option>
-                      {colleges.map(c => <option key={c.id} value={c.id}>{c.college_name} (Bal: {c.credits})</option>)}
+                      {colleges.map(c => <option key={c.id} value={c.id}>{c.college_name} (Current Balance: {c.credits} Credits)</option>)}
                     </select>
                   </div>
 
                   <div className="form-group" style={{ marginBottom: '0' }}>
-                    <input type="number" placeholder="Additional Credits to Add" className="form-control" required value={allocateData.credits} onChange={(e) => setAllocateData({ ...allocateData, credits: e.target.value })} />
+                    <label className="form-label">Additional Credits to Add</label>
+                    <input type="number" placeholder="e.g. 50" className="form-control" required value={allocateData.credits} onChange={(e) => setAllocateData({ ...allocateData, credits: e.target.value })} />
                   </div>
 
-                  <div style={{ borderTop: '1px solid var(--border-color)', marginTop: '8px', paddingTop: '8px' }}>
-                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>Add/Update College Admin credentials</p>
-                    <input type="text" placeholder="Admin Username" className="form-control" style={{ marginBottom: '8px' }} value={allocateData.admin_username} onChange={(e) => setAllocateData({ ...allocateData, admin_username: e.target.value })} />
-                    <input type="email" placeholder="Admin Email" className="form-control" style={{ marginBottom: '8px' }} value={allocateData.admin_email} onChange={(e) => setAllocateData({ ...allocateData, admin_email: e.target.value })} />
-                    <input type="password" placeholder="Admin Password" className="form-control" value={allocateData.admin_password} onChange={(e) => setAllocateData({ ...allocateData, admin_password: e.target.value })} />
+                  <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '14px', marginTop: '4px' }}>
+                    <p style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-main)', marginBottom: '10px' }}>Update Admin Credentials (Optional)</p>
+                    <div className="form-group">
+                      <label className="form-label">Admin Username</label>
+                      <input type="text" placeholder="Username" className="form-control" value={allocateData.admin_username} onChange={(e) => setAllocateData({ ...allocateData, admin_username: e.target.value })} />
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div className="form-group" style={{ marginBottom: '0' }}>
+                        <label className="form-label">Admin Email</label>
+                        <input type="email" placeholder="admin@email.com" className="form-control" value={allocateData.admin_email} onChange={(e) => setAllocateData({ ...allocateData, admin_email: e.target.value })} />
+                      </div>
+                      <div className="form-group" style={{ marginBottom: '0' }}>
+                        <label className="form-label">Admin Password</label>
+                        <input type="password" placeholder="••••••••" className="form-control" value={allocateData.admin_password} onChange={(e) => setAllocateData({ ...allocateData, admin_password: e.target.value })} />
+                      </div>
+                    </div>
                   </div>
 
-                  <button type="submit" className="btn btn-secondary" style={{ marginTop: '8px' }} disabled={allocatingCredits}>
-                    {allocatingCredits ? "Allocating..." : "Allocate Credits"}
-                  </button>
+                  <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '12px' }}>
+                    <button type="button" className="btn btn-secondary" onClick={() => setCollegeSubTab('list')}>
+                      Cancel
+                    </button>
+                    <button type="submit" className="btn btn-primary" disabled={allocatingCredits}>
+                      {allocatingCredits ? "Allocating..." : "Allocate Credits"}
+                    </button>
+                  </div>
                 </form>
               </div>
-
-            </div>
-
-            {/* Right: Colleges List */}
-            <div className="glass-card">
-              <h3 style={{ fontSize: '18px', marginBottom: '16px' }}>Registered College Accounts ({colleges.length})</h3>
-              {loadingColleges ? (
-                <div className="spinner"></div>
-              ) : (
-                <div className="table-container" style={{ maxHeight: '600px', overflowY: 'auto' }}>
-                  <table className="custom-table" style={{ fontSize: '13px' }}>
-                    <thead>
-                      <tr>
-                        <th>College Details</th>
-                        <th>Credits Balance</th>
-                        <th>Admin Info</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {colleges.map(c => (
-                        <tr key={c.id}>
-                          <td>
-                            <strong>{c.college_name}</strong>
-                            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Created {new Date(c.created_at).toLocaleDateString()}</div>
-                            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Contact: {c.contact_email}</div>
-                          </td>
-                          <td>
-                            <strong style={{ fontSize: '16px' }}>{c.credits}</strong>
-                            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Allocated: {c.allocated_credits}</div>
-                          </td>
-                          <td>
-                            {c.admin_username ? (
-                              <div>
-                                <strong>@{c.admin_username}</strong>
-                                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{c.admin_email}</div>
-                              </div>
-                            ) : (
-                              <span style={{ color: 'var(--danger)', fontSize: '11px' }}>No Admin</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
+            )}
 
           </div>
         )}
@@ -825,100 +930,181 @@ export default function AdminPortal({ user }) {
 
         {/* TAB 5: PRICING CONFIGURATION */}
         {activeTab === 'pricing' && (
-          <div className="pricing-config-layout">
-            <div className="pricing-header">
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
               <div>
-                <h2 style={{ fontSize: '28px', marginBottom: '8px' }}>Pricing Configuration</h2>
-                <p style={{ color: 'var(--text-muted)', marginBottom: '4px', maxWidth: '640px' }}>
-                  Manage pricing settings for document verification, express delivery, editing suggestions, and referral credits in a polished responsive dashboard.
+                <h2 style={{ fontSize: '26px' }}>Pricing Configuration Table</h2>
+                <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
+                  Directly edit rate values, surcharges, and bonus credits in the interactive table below.
                 </p>
               </div>
-              <div className="pricing-header-badge">
-                <div className="pricing-badge-title">Live Pricing Preview</div>
-                <div className="pricing-badge-value">Changes are saved instantly to the platform.</div>
-              </div>
+              <button 
+                className="btn btn-primary" 
+                onClick={handlePricingSubmit}
+                disabled={updatingPricing}
+                style={{ minWidth: '160px' }}
+              >
+                {updatingPricing ? "Saving changes..." : "Save All Changes"}
+              </button>
             </div>
 
-            <div className="pricing-config-grid">
-              <div className="glass-card pricing-config-form">
-                <h3 style={{ fontSize: '20px', marginBottom: '18px' }}>Edit Configuration</h3>
-                <form onSubmit={handlePricingSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-                  <div className="pricing-field-card">
-                    <div>
-                      <label className="form-label">Per-Word Verification Rate (₹)</label>
-                      <p className="field-help">Set the base amount charged per verified word.</p>
-                    </div>
-                    <input type="number" step="0.01" className="form-control" required value={pricing.per_word_rate} onChange={(e) => setPricing({ ...pricing, per_word_rate: e.target.value })} />
-                  </div>
+            {/* EDITABLE PRICING TABLE */}
+            <form onSubmit={handlePricingSubmit}>
+              <div className="glass-card" style={{ marginBottom: '24px' }}>
+                <h3 style={{ fontSize: '18px', marginBottom: '16px' }}>Live Platform Rates & Addons</h3>
+                <div className="table-container">
+                  <table className="custom-table">
+                    <thead>
+                      <tr>
+                        <th>Setting Parameter</th>
+                        <th>Description</th>
+                        <th style={{ width: '220px' }}>Current Value (₹)</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>
+                          <strong>Per-Word Rate</strong>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Base Document Rate</div>
+                        </td>
+                        <td style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
+                          Base amount charged per verified word in student documents.
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontWeight: 'bold', color: 'var(--text-muted)' }}>₹</span>
+                            <input 
+                              type="number" 
+                              step="0.01" 
+                              className="form-control" 
+                              required 
+                              value={pricing.per_word_rate} 
+                              onChange={(e) => setPricing({ ...pricing, per_word_rate: e.target.value })} 
+                              style={{ padding: '6px 10px', fontSize: '14px', fontWeight: '600' }}
+                            />
+                          </div>
+                        </td>
+                        <td>
+                          <span className="badge badge-ready">Active</span>
+                        </td>
+                      </tr>
 
-                  <div className="pricing-field-card">
-                    <div>
-                      <label className="form-label">Express Verification Surcharge (₹)</label>
-                      <p className="field-help">This fee is added for priority queue processing.</p>
-                    </div>
-                    <input type="number" step="1" className="form-control" required value={pricing.express_fee} onChange={(e) => setPricing({ ...pricing, express_fee: e.target.value })} />
-                  </div>
+                      <tr>
+                        <td>
+                          <strong>Express Verification Fee</strong>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Priority Surcharge</div>
+                        </td>
+                        <td style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
+                          Flat surcharge added for priority queue processing.
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontWeight: 'bold', color: 'var(--text-muted)' }}>₹</span>
+                            <input 
+                              type="number" 
+                              step="1" 
+                              className="form-control" 
+                              required 
+                              value={pricing.express_fee} 
+                              onChange={(e) => setPricing({ ...pricing, express_fee: e.target.value })} 
+                              style={{ padding: '6px 10px', fontSize: '14px', fontWeight: '600' }}
+                            />
+                          </div>
+                        </td>
+                        <td>
+                          <span className="badge badge-ready">Active</span>
+                        </td>
+                      </tr>
 
-                  <div className="pricing-field-card">
-                    <div>
-                      <label className="form-label">Editing Suggestions Addon Fee (₹)</label>
-                      <p className="field-help">Optional add-on fee for grammar and phrasing guidance.</p>
-                    </div>
-                    <input type="number" step="1" className="form-control" required value={pricing.editing_suggestions_fee} onChange={(e) => setPricing({ ...pricing, editing_suggestions_fee: e.target.value })} />
-                  </div>
+                      <tr>
+                        <td>
+                          <strong>Editing Suggestions Fee</strong>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Addon Guidance</div>
+                        </td>
+                        <td style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
+                          Optional add-on fee for grammar and phrasing improvement suggestions.
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontWeight: 'bold', color: 'var(--text-muted)' }}>₹</span>
+                            <input 
+                              type="number" 
+                              step="1" 
+                              className="form-control" 
+                              required 
+                              value={pricing.editing_suggestions_fee} 
+                              onChange={(e) => setPricing({ ...pricing, editing_suggestions_fee: e.target.value })} 
+                              style={{ padding: '6px 10px', fontSize: '14px', fontWeight: '600' }}
+                            />
+                          </div>
+                        </td>
+                        <td>
+                          <span className="badge badge-ready">Active</span>
+                        </td>
+                      </tr>
 
-                  <div className="pricing-field-card">
-                    <div>
-                      <label className="form-label">Referral Bonus Credit (₹)</label>
-                      <p className="field-help">Amount awarded to users for every successful referral.</p>
-                    </div>
-                    <input type="number" step="1" className="form-control" required value={pricing.referral_credit} onChange={(e) => setPricing({ ...pricing, referral_credit: e.target.value })} />
-                  </div>
-
-                  <button type="submit" className="btn btn-primary" disabled={updatingPricing}>
-                    {updatingPricing ? "Saving pricing..." : "Save Pricing Configuration"}
-                  </button>
-                </form>
+                      <tr>
+                        <td>
+                          <strong>Referral Credit Bonus</strong>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Growth Incentive</div>
+                        </td>
+                        <td style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
+                          Credit bonus awarded to existing users per successful friend referral.
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontWeight: 'bold', color: 'var(--text-muted)' }}>₹</span>
+                            <input 
+                              type="number" 
+                              step="1" 
+                              className="form-control" 
+                              required 
+                              value={pricing.referral_credit} 
+                              onChange={(e) => setPricing({ ...pricing, referral_credit: e.target.value })} 
+                              style={{ padding: '6px 10px', fontSize: '14px', fontWeight: '600' }}
+                            />
+                          </div>
+                        </td>
+                        <td>
+                          <span className="badge badge-ready">Active</span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
+            </form>
 
-              <div className="glass-card pricing-summary-card">
-                <h3 style={{ fontSize: '20px', marginBottom: '16px' }}>Configuration Summary</h3>
-                <div className="pricing-summary-item">
-                  <span>Per Word Rate</span>
-                  <strong>₹{pricing.per_word_rate || '0.00'}</strong>
-                </div>
-                <div className="pricing-summary-item">
-                  <span>Express Surcharge</span>
-                  <strong>₹{pricing.express_fee || '0.00'}</strong>
-                </div>
-                <div className="pricing-summary-item">
-                  <span>Editing Suggestions Fee</span>
-                  <strong>₹{pricing.editing_suggestions_fee || '0.00'}</strong>
-                </div>
-                <div className="pricing-summary-item">
-                  <span>Referral Credit</span>
-                  <strong>₹{pricing.referral_credit || '0.00'}</strong>
-                </div>
-
-                <div className="pricing-summary-callout">
-                  <div className="callout-title">Sample Verified Order</div>
-                  <div className="callout-line">
-                    <span>Document size</span>
-                    <span><strong>1,200 words</strong></span>
-                  </div>
-                  <div className="callout-line">
-                    <span>Base charge</span>
-                    <span><strong>₹{((parseFloat(pricing.per_word_rate) || 0) * 1200).toFixed(2)}</strong></span>
-                  </div>
-                  <div className="callout-line">
-                    <span>Express + suggestions</span>
-                    <span><strong>₹{(((parseFloat(pricing.express_fee) || 0) + (parseFloat(pricing.editing_suggestions_fee) || 0))).toFixed(2)}</strong></span>
-                  </div>
-                  <div className="callout-total">
-                    Total estimate
-                    <strong>₹{(((parseFloat(pricing.per_word_rate) || 0) * 1200) + (parseFloat(pricing.express_fee) || 0) + (parseFloat(pricing.editing_suggestions_fee) || 0)).toFixed(2)}</strong>
-                  </div>
-                </div>
+            {/* LIVE COMPUTATION ESTIMATE TABLE */}
+            <div className="glass-card">
+              <h3 style={{ fontSize: '18px', marginBottom: '12px' }}>Live Order Estimate Simulation (1,200 Words)</h3>
+              <div className="table-container">
+                <table className="custom-table" style={{ fontSize: '13px' }}>
+                  <thead>
+                    <tr>
+                      <th>Base Rate Calculation (1,200 Words)</th>
+                      <th>Express Surcharge</th>
+                      <th>Editing Suggestions</th>
+                      <th>Calculated Order Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <strong>₹{((parseFloat(pricing.per_word_rate) || 0) * 1200).toFixed(2)}</strong>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>1,200 words × ₹{pricing.per_word_rate || '0.00'}/word</div>
+                      </td>
+                      <td>+ ₹{parseFloat(pricing.express_fee || 0).toFixed(2)}</td>
+                      <td>+ ₹{parseFloat(pricing.editing_suggestions_fee || 0).toFixed(2)}</td>
+                      <td>
+                        <strong style={{ fontSize: '16px', color: 'var(--primary)' }}>
+                          ₹{(((parseFloat(pricing.per_word_rate) || 0) * 1200) + (parseFloat(pricing.express_fee) || 0) + (parseFloat(pricing.editing_suggestions_fee) || 0)).toFixed(2)}
+                        </strong>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>

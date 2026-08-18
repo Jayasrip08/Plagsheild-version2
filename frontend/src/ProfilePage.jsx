@@ -72,9 +72,9 @@ export default function ProfilePage({ user, onProfileUpdate }) {
       const updated = await api.put('accounts/profile/', payload);
       setForm((prev) => ({ ...prev, password: '' }));
       setMessage('Profile updated successfully.');
-      window.localStorage.setItem('user', JSON.stringify(updated));
+      window.localStorage.setItem('user', JSON.stringify(updated.data));
       if (onProfileUpdate) {
-        onProfileUpdate(updated);
+        onProfileUpdate(updated.data);
       }
     } catch (e) {
       console.error('Profile save failed', e);

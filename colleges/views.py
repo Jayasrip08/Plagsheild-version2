@@ -15,9 +15,13 @@ from accounts.permissions import IsSuperAdmin, IsCollegeAdmin
 from orders.models import Order
 
 class CollegeListCreateView(generics.ListCreateAPIView):
-    queryset = College.objects.all().order_by('-created_at')
+    queryset = College.objects.all().order_by('college_name')
     serializer_class = CollegeSerializer
-    permission_classes = [IsSuperAdmin]
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [permissions.AllowAny()]
+        return [IsSuperAdmin()]
 
     def perform_create(self, serializer):
         # When creating a college, set initial allocated_credits same as current credits

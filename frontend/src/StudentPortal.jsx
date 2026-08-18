@@ -133,11 +133,12 @@ export default function StudentPortal({ user, setUser }) {
 
       if (isB2B) {
         // B2B order processed directly
-        alert("Submissions completed successfully using college B2B credits!");
+        setShowUpsell(true);
         setFile(null);
         setEstimate(null);
         fetchOrders();
-        setActiveTab('history');
+        setTrackedOrder(orderData);
+        setActiveTab('tracking');
       } else {
         // B2C: Proceed to Payment
         initiatePayment(orderData);
@@ -351,11 +352,11 @@ export default function StudentPortal({ user, setUser }) {
       </aside>
 
       {/* Main Content Area */}
-      <main style={{ padding: '40px', overflowY: 'auto' }}>
+      <main className="dashboard-main">
         
         {/* TAB 1: NEW DOCUMENT CHECK */}
         {activeTab === 'new_check' && (
-          <div style={{ maxWidth: '720px', margin: '0 auto', textAlign: 'left' }}>
+          <div>
             <h2 style={{ fontSize: '32px', marginBottom: '8px' }}>Plagiarism Document Check</h2>
             <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>
               Upload your research papers, theses, or essays. Results verified within turnitin queues.
@@ -367,6 +368,19 @@ export default function StudentPortal({ user, setUser }) {
               <div 
                 className="dropzone"
                 onClick={() => fileInputRef.current.click()}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onDrop={async (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                    const droppedFile = e.dataTransfer.files[0];
+                    setFile(droppedFile);
+                    await getEstimate(droppedFile, isExpress, hasSuggestions);
+                  }
+                }}
               >
                 <input 
                   type="file" 
@@ -380,7 +394,7 @@ export default function StudentPortal({ user, setUser }) {
                   <div>
                     <h4 style={{ color: 'var(--secondary)', marginBottom: '6px' }}>{file.name}</h4>
                     <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
-                      {(file.size / 1024 / 1024).toFixed(2)} MB • Click to upload different file
+                      {(file.size / 1024 / 1024).toFixed(2)} MB • Click or drag to replace file
                     </p>
                   </div>
                 ) : (
@@ -618,7 +632,7 @@ export default function StudentPortal({ user, setUser }) {
 
         {/* TAB 4: LIVE TRACKING */}
         {activeTab === 'tracking' && trackedOrder && (
-          <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'left' }}>
+          <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
               <h2>Order Tracking - #{trackedOrder.id}</h2>
               <button 

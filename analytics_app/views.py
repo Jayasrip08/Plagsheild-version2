@@ -76,7 +76,7 @@ class SuperAdminDashboardView(APIView):
             growth_pct = 100.0 if current_month_total > 0 else 0.0
 
         # Top Users by B2C Spend
-        top_spenders = User.objects.filter(role='user', college__isnull=True).annotate(
+        top_spenders = User.objects.filter(role='b2c_student').annotate(
             total_spend=Sum('orders__price', filter=Q(orders__payment__status='Paid'))
         ).filter(total_spend__gt=0).order_by('-total_spend')[:5]
 

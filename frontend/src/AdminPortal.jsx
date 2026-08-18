@@ -1116,7 +1116,7 @@ export default function AdminPortal({ user }) {
       {/* COMPLETE ORDER DIALOG MODAL */}
       {selectedOrder && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '480px', padding: '24px', borderRadius: '8px' }}>
+          <div className="modal-content" style={{ maxWidth: '640px', width: '90%', padding: '32px', borderRadius: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid var(--border-color)' }}>
               <h3 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0, color: 'var(--text-main)' }}>
                 Complete Order #{selectedOrder.id}
@@ -1154,38 +1154,13 @@ export default function AdminPortal({ user }) {
               {/* Upload Report PDF Input */}
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label">Verified PDF Report</label>
-                <div 
-                  style={{
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '6px',
-                    padding: '10px 14px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justify: 'space-between',
-                    backgroundColor: completeForm.report_file ? '#f0f9ff' : '#ffffff',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease'
-                  }}
-                  onClick={() => document.getElementById('report-pdf-input').click()}
-                >
-                  <input 
-                    id="report-pdf-input"
-                    type="file" 
-                    accept=".pdf" 
-                    style={{ display: 'none' }}
-                    required={!completeForm.report_file}
-                    onChange={(e) => setCompleteForm({ ...completeForm, report_file: e.target.files[0] })}
-                  />
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', overflow: 'hidden' }}>
-                    <Upload size={16} color={completeForm.report_file ? 'var(--primary)' : 'var(--text-muted)'} />
-                    <span style={{ color: completeForm.report_file ? 'var(--primary)' : 'var(--text-muted)', fontWeight: completeForm.report_file ? '600' : 'normal', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                      {completeForm.report_file ? completeForm.report_file.name : 'Select PDF plagiarism report...'}
-                    </span>
-                  </div>
-                  <span className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '12px', pointerEvents: 'none' }}>
-                    Browse
-                  </span>
-                </div>
+                <input 
+                  type="file" 
+                  accept=".pdf" 
+                  className="form-control" 
+                  required 
+                  onChange={(e) => setCompleteForm({ ...completeForm, report_file: e.target.files[0] })}
+                />
               </div>
 
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '4px' }}>

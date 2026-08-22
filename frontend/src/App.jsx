@@ -30,7 +30,7 @@ function App() {
   const [departmentOption, setDepartmentOption] = useState('Computer Science');
   const [authError, setAuthError] = useState('');
   const [submittingAuth, setSubmittingAuth] = useState(false);
-  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1079783815723-m3660oi8tl5v2igiljnkjk41339nf6bg.apps.googleusercontent.com';
   const [googleSdkLoaded, setGoogleSdkLoaded] = useState(false);
   const [showGoogleRoleModal, setShowGoogleRoleModal] = useState(false);
   const [googleRoleForSignup, setGoogleRoleForSignup] = useState('b2c_student');

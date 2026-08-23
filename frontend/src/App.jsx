@@ -167,49 +167,53 @@ function App() {
       return;
     }
 
+    let intervalId;
     const initGoogleSdk = () => {
       if (!window.google?.accounts?.id) {
-        return;
+        return false;
       }
 
-      window.google.accounts.id.initialize({
-        client_id: googleClientId,
-        callback: handleGoogleCredentialResponse,
-        ux_mode: 'popup',
-        cancel_on_tap_outside: true,
-      });
-      setGoogleSdkLoaded(true);
+      try {
+        window.google.accounts.id.initialize({
+          client_id: googleClientId,
+          callback: handleGoogleCredentialResponse,
+          ux_mode: 'popup',
+          cancel_on_tap_outside: true,
+        });
+        setGoogleSdkLoaded(true);
+        if (intervalId) clearInterval(intervalId);
+        return true;
+      } catch (err) {
+        console.error("Google SDK init error", err);
+        return false;
+      }
     };
 
-    const existingScript = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
     if (window.google?.accounts?.id) {
       initGoogleSdk();
       return;
     }
 
+    intervalId = setInterval(() => {
+      if (initGoogleSdk()) {
+        clearInterval(intervalId);
+      }
+    }, 500);
+
+    const existingScript = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
     if (existingScript) {
       existingScript.addEventListener('load', initGoogleSdk);
-      existingScript.addEventListener('error', () => {
-        console.error('Failed to load Google OAuth script.');
-        setAuthError('Failed to load Google OAuth SDK. Reload the page and try again.');
-      });
-      return;
+    } else {
+      const script = document.createElement('script');
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      script.onload = initGoogleSdk;
+      document.body.appendChild(script);
     }
 
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.onload = initGoogleSdk;
-    script.onerror = () => {
-      console.error('Failed to load Google OAuth script.');
-      setAuthError('Failed to load Google OAuth SDK. Reload the page and try again.');
-    };
-    document.body.appendChild(script);
-
     return () => {
-      script.onload = null;
-      script.onerror = null;
+      if (intervalId) clearInterval(intervalId);
     };
   }, [googleClientId, handleGoogleCredentialResponse]);
 

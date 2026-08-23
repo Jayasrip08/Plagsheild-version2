@@ -29,7 +29,7 @@ def seed():
     admin_user = User.objects.filter(role='super_admin').first()
     if admin_user:
         admin_user.email = 'innoliftventures@gmail.com'
-        admin_user.set_password('Admin@Innolift2026!')
+        admin_user.set_password('Admin@innolift2026!')
         admin_user.save()
         print("Updated Super Admin user 'innoliftventures@gmail.com' (password: Admin@Innolift2026!).")
     else:

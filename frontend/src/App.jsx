@@ -162,15 +162,17 @@ function App() {
     }
   }, [isLogin]);
 
+  const isGoogleInitialized = useRef(false);
+
   useEffect(() => {
-    if (!googleClientId) {
+    if (!googleClientId || isGoogleInitialized.current) {
       return;
     }
 
     let intervalId;
     const initGoogleSdk = () => {
-      if (!window.google?.accounts?.id) {
-        return false;
+      if (!window.google?.accounts?.id || isGoogleInitialized.current) {
+        return isGoogleInitialized.current;
       }
 
       try {
@@ -179,7 +181,9 @@ function App() {
           callback: handleGoogleCredentialResponse,
           ux_mode: 'popup',
           cancel_on_tap_outside: true,
+          use_fedcm_for_prompt: false,
         });
+        isGoogleInitialized.current = true;
         setGoogleSdkLoaded(true);
         if (intervalId) clearInterval(intervalId);
         return true;

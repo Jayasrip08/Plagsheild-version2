@@ -424,25 +424,6 @@ export default function StudentPortal({ user, setUser }) {
                     Calculation Summary
                   </h3>
                   
-                  {user.college_id && (
-                    <div className="form-group" style={{ margin: '16px 0', padding: '10px', background: 'rgba(6, 182, 212, 0.05)', borderRadius: '6px', border: '1px solid rgba(6, 182, 212, 0.2)' }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
-                        <input 
-                          type="checkbox" 
-                          checked={useCredits} 
-                          onChange={(e) => setUseCredits(e.target.checked)}
-                          style={{ scale: '1.2' }}
-                        />
-                        <div>
-                          <strong style={{ color: 'var(--secondary)' }}>Use College B2B Credits</strong>
-                          <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                            Deduct 1 check from {user.college_name} credits. Free submission.
-                          </p>
-                        </div>
-                      </label>
-                    </div>
-                  )}
-
                   {!useCredits && (
                     <>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '18px', fontWeight: 'bold' }}>

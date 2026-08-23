@@ -291,27 +291,7 @@ export default function AdminPortal({ user }) {
             </svg>
             <span>Order History</span>
           </button>
-          <button className={`nav-link ${activeTab === 'colleges' && collegeSubTab === 'list' ? 'active' : ''}`} onClick={() => { setActiveTab('colleges'); setCollegeSubTab('list'); }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-              <path d="M6 12v5c3 3 9 3 12 0v-5"/>
-            </svg>
-            <span>Colleges Directory</span>
-          </button>
-          <button className={`nav-link ${activeTab === 'colleges' && collegeSubTab === 'create' ? 'active' : ''}`} onClick={() => { setActiveTab('colleges'); setCollegeSubTab('create'); }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 5v14M5 12h14"/>
-            </svg>
-            <span>Register College</span>
-          </button>
-          <button className={`nav-link ${activeTab === 'colleges' && collegeSubTab === 'allocate' ? 'active' : ''}`} onClick={() => { setActiveTab('colleges'); setCollegeSubTab('allocate'); }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="12" y1="8" x2="12" y2="16"/>
-              <line x1="8" y1="12" x2="16" y2="12"/>
-            </svg>
-            <span>Allocate Credits</span>
-          </button>
+
           <button className={`nav-link ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -372,9 +352,15 @@ export default function AdminPortal({ user }) {
                     </div>
                     <div style={{ fontSize: '32px', fontWeight: 'bold', color: 'var(--success)' }}>
                       ₹{stats.total_revenue.toLocaleString()}
+                  <div className="glass-card">
+                    <div style={{ fontSize: '13px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>
+                      Total Revenue
+                    </div>
+                    <div style={{ fontSize: '32px', fontWeight: 'bold', color: 'var(--success)' }}>
+                      ₹{stats.total_revenue.toLocaleString()}
                     </div>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' }}>
-                      B2C: ₹{stats.b2c_revenue_total.toLocaleString()} • B2B: ₹{stats.b2b_revenue_total.toLocaleString()}
+                      Individual Orders
                     </div>
                   </div>
 
@@ -383,15 +369,15 @@ export default function AdminPortal({ user }) {
                       Pending Queue Checks
                     </div>
                     <div style={{ fontSize: '32px', fontWeight: 'bold', color: 'var(--warning)' }}>{stats.pending_checks}</div>
-                    <div style={{ color: 'var(--warning)', fontSize: '12px', marginTop: '6px' }}>NeedsTurnitin upload</div>
+                    <div style={{ color: 'var(--warning)', fontSize: '12px', marginTop: '6px' }}>Needs Turnitin upload</div>
                   </div>
 
                   <div className="glass-card">
                     <div style={{ fontSize: '13px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>
-                      Active Colleges / Users
+                      Registered Users
                     </div>
                     <div style={{ fontSize: '32px', fontWeight: 'bold' }}>
-                      {stats.active_colleges} <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>/ {stats.total_registered_users}</span>
+                      {stats.total_registered_users}
                     </div>
                     <div style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '6px' }}>Total client accounts</div>
                   </div>
@@ -403,7 +389,7 @@ export default function AdminPortal({ user }) {
                   {/* Revenue Growth Trend */}
                   <div className="glass-card" style={{ minHeight: '350px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                      <h3 style={{ fontSize: '18px' }}>Revenue Chart split (B2C vs B2B)</h3>
+                      <h3 style={{ fontSize: '18px' }}>Revenue Chart</h3>
                       <div style={{ color: 'var(--success)', fontWeight: 'bold' }}>
                         MoM Growth: {stats.mom_growth_percent}%
                       </div>
@@ -416,8 +402,7 @@ export default function AdminPortal({ user }) {
                           <YAxis stroke="var(--text-muted)" unit="₹" />
                           <Tooltip contentStyle={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }} />
                           <Legend />
-                          <Bar dataKey="B2C" name="B2C Cash" fill="var(--primary)" stackId="a" />
-                          <Bar dataKey="B2B" name="B2B Credits" fill="var(--secondary)" stackId="a" />
+                          <Bar dataKey="B2C" name="Total Cash" fill="var(--primary)" stackId="a" />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>

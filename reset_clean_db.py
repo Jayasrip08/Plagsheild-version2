@@ -30,8 +30,8 @@ def reset_and_seed():
     # 2. Super Admin
     User.objects.create_superuser(
         username='admin',
-        email='admin@plagiarismplatform.com',
-        password='admin123',
+        email='innoliftventures@gmail.com',
+        password='Admin@innolift2026!',
         role='super_admin'
     )
 

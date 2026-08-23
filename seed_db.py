@@ -25,17 +25,21 @@ def seed():
     else:
         print("PricingConfig already exists.")
 
-    # 2. Create Super Admin
-    if not User.objects.filter(username='admin').exists():
-        admin = User.objects.create_superuser(
+    # 2. Create or Update Super Admin
+    admin_user = User.objects.filter(role='super_admin').first()
+    if admin_user:
+        admin_user.email = 'innoliftventures@gmail.com'
+        admin_user.set_password('Admin@Innolift2026!')
+        admin_user.save()
+        print("Updated Super Admin user 'innoliftventures@gmail.com' (password: Admin@Innolift2026!).")
+    else:
+        User.objects.create_superuser(
             username='admin',
-            email='admin@plagiarismplatform.com',
-            password='admin123',
+            email='innoliftventures@gmail.com',
+            password='Admin@Innolift2026!',
             role='super_admin'
         )
-        print("Created Super Admin user 'admin' (password: admin123).")
-    else:
-        print("Super Admin 'admin' already exists.")
+        print("Created Super Admin user 'innoliftventures@gmail.com' (password: Admin@Innolift2026!).")
 
     # 3. Create College B2B
     college, created = College.objects.get_or_create(

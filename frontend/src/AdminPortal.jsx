@@ -352,12 +352,6 @@ export default function AdminPortal({ user }) {
                     </div>
                     <div style={{ fontSize: '32px', fontWeight: 'bold', color: 'var(--success)' }}>
                       ₹{stats.total_revenue.toLocaleString()}
-                  <div className="glass-card">
-                    <div style={{ fontSize: '13px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>
-                      Total Revenue
-                    </div>
-                    <div style={{ fontSize: '32px', fontWeight: 'bold', color: 'var(--success)' }}>
-                      ₹{stats.total_revenue.toLocaleString()}
                     </div>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' }}>
                       Individual Orders

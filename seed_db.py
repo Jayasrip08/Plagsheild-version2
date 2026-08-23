@@ -31,15 +31,15 @@ def seed():
         admin_user.email = 'innoliftventures@gmail.com'
         admin_user.set_password('Admin@innolift2026!')
         admin_user.save()
-        print("Updated Super Admin user 'innoliftventures@gmail.com' (password: Admin@Innolift2026!).")
+        print("Updated Super Admin user 'innoliftventures@gmail.com' (password: Admin@innolift2026!).")
     else:
         User.objects.create_superuser(
             username='admin',
             email='innoliftventures@gmail.com',
-            password='Admin@Innolift2026!',
+            password='Admin@innolift2026!',
             role='super_admin'
         )
-        print("Created Super Admin user 'innoliftventures@gmail.com' (password: Admin@Innolift2026!).")
+        print("Created Super Admin user 'innoliftventures@gmail.com' (password: Admin@innolift2026!).")
 
     # 3. Create College B2B
     college, created = College.objects.get_or_create(

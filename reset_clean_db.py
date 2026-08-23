@@ -22,10 +22,9 @@ def reset_and_seed():
     # 1. Default Pricing Config
     PricingConfig.objects.create(
         id=1,
-        per_word_rate=0.50,
-        express_fee=500.00,
-        editing_suggestions_fee=299.00,
-        referral_credit=100.00
+        per_word_rate=99.00,
+        express_fee=199.00,
+        editing_suggestions_fee=299.00
     )
 
     # 2. Super Admin

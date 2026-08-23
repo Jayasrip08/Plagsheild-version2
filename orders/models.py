@@ -80,26 +80,21 @@ class PricingConfig(models.Model):
     per_word_rate = models.DecimalField(
         max_digits=6,
         decimal_places=2,
-        default=0.50
+        default=99.00
     )
     express_fee = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        default=500.00
+        default=199.00
     )
     editing_suggestions_fee = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         default=299.00
     )
-    referral_credit = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        default=100.00
-    )
     updated_at = models.DateTimeField(
         auto_now=True
     )
 
     def __str__(self):
-        return f"Pricing Config (Rate: {self.per_word_rate}, Express: {self.express_fee}, Upsell: {self.editing_suggestions_fee})"
+        return f"Pricing Config (Similarity Check: ₹{self.per_word_rate}, Similarity Reduction: ₹{self.express_fee}, Complete Package: ₹{self.editing_suggestions_fee})"

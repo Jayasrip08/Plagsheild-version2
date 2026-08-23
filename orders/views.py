@@ -62,30 +62,25 @@ class WordCountEstimateView(APIView):
         
         word_count = get_word_count(uploaded_file)
         
-        # Calculate pricing
+        # Calculate pricing based on flat standalone package selection
         config = PricingConfig.objects.last()
         if not config:
             config = PricingConfig.objects.create(
-                per_word_rate=0.50,
-                express_fee=500.00,
-                editing_suggestions_fee=299.00,
-                referral_credit=100.00
+                per_word_rate=99.00,
+                express_fee=199.00,
+                editing_suggestions_fee=299.00
             )
             
-        base_price = word_count * config.per_word_rate
-        total_price = base_price
-        
-        if is_express:
-            total_price += config.express_fee
         if has_suggestions:
-            total_price += config.editing_suggestions_fee
+            total_price = config.editing_suggestions_fee # ₹299 Complete Package
+        elif is_express:
+            total_price = config.express_fee # ₹199 Similarity Reduction
+        else:
+            total_price = config.per_word_rate # ₹99 Similarity Check
             
         return Response({
             "filename": uploaded_file.name,
             "word_count": word_count,
-            "base_price": round(float(base_price), 2),
-            "express_fee": round(float(config.express_fee), 2) if is_express else 0.0,
-            "editing_suggestions_fee": round(float(config.editing_suggestions_fee), 2) if has_suggestions else 0.0,
             "total_price": round(float(total_price), 2)
         })
 
@@ -150,10 +145,9 @@ class OrderListCreateView(generics.ListCreateAPIView):
         config = PricingConfig.objects.last()
         if not config:
             config = PricingConfig.objects.create(
-                per_word_rate=0.50,
-                express_fee=500.00,
-                editing_suggestions_fee=299.00,
-                referral_credit=100.00
+                per_word_rate=99.00,
+                express_fee=199.00,
+                editing_suggestions_fee=299.00
             )
 
         if is_b2b_submission:
@@ -202,13 +196,13 @@ class OrderListCreateView(generics.ListCreateAPIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
             
         else:
-            # B2C Billed Order
-            base_price = word_count * config.per_word_rate
-            total_price = base_price
-            if is_express:
-                total_price += config.express_fee
+            # B2C Billed Order - Standalone Tier Selection
             if has_suggestions:
-                total_price += config.editing_suggestions_fee
+                total_price = config.editing_suggestions_fee # ₹299 Complete Package
+            elif is_express:
+                total_price = config.express_fee # ₹199 Similarity Reduction
+            else:
+                total_price = config.per_word_rate # ₹99 Similarity Check
 
             # Create Order (status: Submitted, will wait for Payment verification to proceed)
             # Or in this view we create order in 'Processing' or 'Submitted' state
@@ -566,10 +560,9 @@ class PricingConfigView(APIView):
         config = PricingConfig.objects.last()
         if not config:
             config = PricingConfig.objects.create(
-                per_word_rate=0.50,
-                express_fee=500.00,
-                editing_suggestions_fee=299.00,
-                referral_credit=100.00
+                per_word_rate=99.00,
+                express_fee=199.00,
+                editing_suggestions_fee=299.00
             )
         serializer = PricingConfigSerializer(config)
         return Response(serializer.data)

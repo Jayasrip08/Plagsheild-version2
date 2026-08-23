@@ -15,10 +15,9 @@ def seed():
     config, created = PricingConfig.objects.get_or_create(
         id=1,
         defaults={
-            'per_word_rate': 0.50,
-            'express_fee': 500.00,
-            'editing_suggestions_fee': 299.00,
-            'referral_credit': 100.00
+            'per_word_rate': 99.00,
+            'express_fee': 199.00,
+            'editing_suggestions_fee': 299.00
         }
     )
     if created:

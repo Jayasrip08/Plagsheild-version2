@@ -443,7 +443,6 @@ export default function CollegePortal({ user }) {
                       <th>Student Account</th>
                       <th>Document Filename</th>
                       <th>Dept</th>
-                      <th>Word Count</th>
                       <th>Date Submitted</th>
                       <th>Similarity Score</th>
                       <th>Status</th>
@@ -459,7 +458,6 @@ export default function CollegePortal({ user }) {
                         </td>
                         <td>{s.document.split('/').pop()}</td>
                         <td><span style={{ padding: '4px 8px', background: 'var(--bg-tertiary)', borderRadius: '4px', fontSize: '12px' }}>{s.department || 'N/A'}</span></td>
-                        <td>{s.word_count}</td>
                         <td>{new Date(s.created_at).toLocaleDateString()}</td>
                         <td style={{ fontWeight: 'bold', color: s.similarity_score !== null ? (s.similarity_score > 25 ? 'var(--danger)' : 'var(--success)') : 'inherit' }}>
                           {s.similarity_score !== null ? `${s.similarity_score}%` : 'In Queue'}

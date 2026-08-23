@@ -25,7 +25,8 @@ export default function StudentPortal({ user, setUser }) {
 
   // Pricing State
   const [pricingConfig, setPricingConfig] = useState({
-    express_fee: 500,
+    per_word_rate: 99,
+    express_fee: 199,
     editing_suggestions_fee: 299
   });
   
@@ -58,7 +59,8 @@ export default function StudentPortal({ user, setUser }) {
     try {
       const res = await api.get('orders/pricing/');
       setPricingConfig({
-        express_fee: res.data.express_fee || 500,
+        per_word_rate: res.data.per_word_rate || 99,
+        express_fee: res.data.express_fee || 199,
         editing_suggestions_fee: res.data.editing_suggestions_fee || 299
       });
     } catch (e) {
@@ -95,17 +97,18 @@ export default function StudentPortal({ user, setUser }) {
     }
   };
 
-  const handleExpressToggle = async (val) => {
-    setIsExpress(val);
-    if (file) {
-      await getEstimate(file, val, hasSuggestions);
+  const handlePackageSelect = async (pkgType) => {
+    let expressVal = false;
+    let suggestionsVal = false;
+    if (pkgType === 'reduction') {
+      expressVal = true;
+    } else if (pkgType === 'complete') {
+      suggestionsVal = true;
     }
-  };
-
-  const handleSuggestionsToggle = async (val) => {
-    setHasSuggestions(val);
+    setIsExpress(expressVal);
+    setHasSuggestions(suggestionsVal);
     if (file) {
-      await getEstimate(file, isExpress, val);
+      await getEstimate(file, expressVal, suggestionsVal);
     }
   };
 
@@ -411,7 +414,7 @@ export default function StudentPortal({ user, setUser }) {
               {estimating && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div className="spinner"></div>
-                  <span style={{ color: 'var(--text-muted)' }}>Analyzing document and counting words...</span>
+                  <span style={{ color: 'var(--text-muted)' }}>Analyzing document...</span>
                 </div>
               )}
 
@@ -420,10 +423,6 @@ export default function StudentPortal({ user, setUser }) {
                   <h3 style={{ fontSize: '18px', marginBottom: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
                     Calculation Summary
                   </h3>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>Word Count:</span>
-                    <strong>{estimate.word_count} words</strong>
-                  </div>
                   
                   {user.college_id && (
                     <div className="form-group" style={{ margin: '16px 0', padding: '10px', background: 'rgba(6, 182, 212, 0.05)', borderRadius: '6px', border: '1px solid rgba(6, 182, 212, 0.2)' }}>
@@ -446,24 +445,8 @@ export default function StudentPortal({ user, setUser }) {
 
                   {!useCredits && (
                     <>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                        <span style={{ color: 'var(--text-muted)' }}>Base Price (at ₹0.50 per word):</span>
-                        <span>₹{estimate.base_price.toFixed(2)}</span>
-                      </div>
-                      {isExpress && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', color: 'var(--secondary)' }}>
-                          <span>Express Surcharge:</span>
-                          <span>+ ₹{estimate.express_fee.toFixed(2)}</span>
-                        </div>
-                      )}
-                      {hasSuggestions && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', color: 'var(--secondary)' }}>
-                          <span>Editing Suggestions Addon:</span>
-                          <span>+ ₹{estimate.editing_suggestions_fee.toFixed(2)}</span>
-                        </div>
-                      )}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--border-color)', fontSize: '18px', fontWeight: 'bold' }}>
-                        <span>Grand Total:</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '18px', fontWeight: 'bold' }}>
+                        <span>Selected Package Price:</span>
                         <span style={{ color: 'var(--secondary)' }}>₹{estimate.total_price.toFixed(2)}</span>
                       </div>
                     </>
@@ -471,32 +454,98 @@ export default function StudentPortal({ user, setUser }) {
                 </div>
               )}
 
-              {/* Extras Option Checklist */}
+              {/* Exclusive 3 Package Options Selection */}
               {file && !useCredits && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '4px' }}>Select Service Tier</h3>
+
+                  {/* Tier 1: Similarity Check (₹99) */}
+                  <label 
+                    onClick={() => handlePackageSelect('check')}
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '12px', 
+                      padding: '14px 16px', 
+                      borderRadius: '8px', 
+                      border: (!isExpress && !hasSuggestions) ? '2px solid var(--secondary)' : '1px solid var(--border-color)', 
+                      backgroundColor: (!isExpress && !hasSuggestions) ? 'rgba(6, 182, 212, 0.05)' : 'var(--bg-secondary)', 
+                      cursor: 'pointer' 
+                    }}
+                  >
                     <input 
-                      type="checkbox" 
-                      checked={isExpress}
-                      onChange={(e) => handleExpressToggle(e.target.checked)}
+                      type="radio" 
+                      name="packageTier"
+                      checked={!isExpress && !hasSuggestions}
+                      onChange={() => {}}
                       style={{ scale: '1.2' }}
                     />
-                    <div>
-                      <strong>Express Verification (+₹{pricingConfig.express_fee})</strong>
-                      <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Prioritizes report generation. Average turnaround under 2 hours.</p>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <strong>Similarity Check</strong>
+                        <strong style={{ color: 'var(--secondary)', fontSize: '16px' }}>₹{pricingConfig.per_word_rate}</strong>
+                      </div>
+                      <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>Standard automated plagiarism & similarity verification report.</p>
                     </div>
                   </label>
 
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                  {/* Tier 2: Similarity Reduction (₹199) */}
+                  <label 
+                    onClick={() => handlePackageSelect('reduction')}
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '12px', 
+                      padding: '14px 16px', 
+                      borderRadius: '8px', 
+                      border: isExpress ? '2px solid var(--secondary)' : '1px solid var(--border-color)', 
+                      backgroundColor: isExpress ? 'rgba(6, 182, 212, 0.05)' : 'var(--bg-secondary)', 
+                      cursor: 'pointer' 
+                    }}
+                  >
                     <input 
-                      type="checkbox" 
-                      checked={hasSuggestions}
-                      onChange={(e) => handleSuggestionsToggle(e.target.checked)}
+                      type="radio" 
+                      name="packageTier"
+                      checked={isExpress}
+                      onChange={() => {}}
                       style={{ scale: '1.2' }}
                     />
-                    <div>
-                      <strong>Include Editing Suggestions (+₹{pricingConfig.editing_suggestions_fee})</strong>
-                      <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Auto-generates phrasing guidelines, grammar, and referencing checklists.</p>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <strong>Similarity Reduction</strong>
+                        <strong style={{ color: 'var(--secondary)', fontSize: '16px' }}>₹{pricingConfig.express_fee}</strong>
+                      </div>
+                      <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>Priority turnaround under 2 hours with similarity reduction guidance.</p>
+                    </div>
+                  </label>
+
+                  {/* Tier 3: Complete Package (₹299) */}
+                  <label 
+                    onClick={() => handlePackageSelect('complete')}
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '12px', 
+                      padding: '14px 16px', 
+                      borderRadius: '8px', 
+                      border: hasSuggestions ? '2px solid var(--secondary)' : '1px solid var(--border-color)', 
+                      backgroundColor: hasSuggestions ? 'rgba(6, 182, 212, 0.05)' : 'var(--bg-secondary)', 
+                      cursor: 'pointer' 
+                    }}
+                  >
+                    <input 
+                      type="radio" 
+                      name="packageTier"
+                      checked={hasSuggestions}
+                      onChange={() => {}}
+                      style={{ scale: '1.2' }}
+                    />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <strong>Complete Package</strong>
+                        <strong style={{ color: 'var(--secondary)', fontSize: '16px' }}>₹{pricingConfig.editing_suggestions_fee}</strong>
+                      </div>
+                      <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>Full package including similarity check, reduction, and editing guidelines.</p>
                     </div>
                   </label>
                 </div>
@@ -553,7 +602,6 @@ export default function StudentPortal({ user, setUser }) {
                       <th>ID</th>
                       <th>Filename</th>
                       <th>Date</th>
-                      <th>Words</th>
                       <th>Type</th>
                       <th>Price</th>
                       <th>Similarity</th>
@@ -570,7 +618,6 @@ export default function StudentPortal({ user, setUser }) {
                           {o.is_express && <span style={{ marginLeft: '8px', fontSize: '10px', padding: '2px 6px', background: 'rgba(6, 182, 212, 0.2)', color: 'var(--secondary)', borderRadius: '4px' }}>EXPRESS</span>}
                         </td>
                         <td>{new Date(o.created_at).toLocaleDateString()}</td>
-                        <td>{o.word_count}</td>
                         <td>
                           {o.is_b2b ? (
                             <span style={{ color: 'var(--secondary)', fontSize: '12px', fontWeight: 'bold' }}>B2B CREDIT</span>
@@ -653,7 +700,7 @@ export default function StudentPortal({ user, setUser }) {
                 Submitted on: <strong>{new Date(trackedOrder.created_at).toLocaleString()}</strong>
               </p>
               <p style={{ color: 'var(--text-muted)' }}>
-                Word Count: <strong>{trackedOrder.word_count} words</strong> • Service Mode: <strong>{trackedOrder.is_express ? 'Express check' : 'Standard check'}</strong>
+                Service Mode: <strong>{trackedOrder.is_express ? 'Express check' : 'Standard check'}</strong>
               </p>
             </div>
 

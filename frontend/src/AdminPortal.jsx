@@ -32,7 +32,7 @@ export default function AdminPortal({ user }) {
   const [selectedHistoryOrder, setSelectedHistoryOrder] = useState(null);
 
   // Pricing configs
-  const [pricing, setPricing] = useState({ per_word_rate: '', express_fee: '', editing_suggestions_fee: '', referral_credit: '' });
+  const [pricing, setPricing] = useState({ per_word_rate: '', express_fee: '', editing_suggestions_fee: '' });
   const [updatingPricing, setUpdatingPricing] = useState(false);
   const [historyOrders, setHistoryOrders] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -517,7 +517,6 @@ export default function AdminPortal({ user }) {
                           </div>
                         </td>
                         <td>{order.document.split('/').pop()}</td>
-                        <td>{order.word_count}</td>
                         <td>
                           <span className={`badge badge-${order.status.toLowerCase().replace(' ', '-')}`}>
                             {order.status}
@@ -612,7 +611,6 @@ export default function AdminPortal({ user }) {
                       <th>User</th>
                       <th>Document</th>
                       <th>Type</th>
-                      <th>Words</th>
                       <th>Price</th>
                       <th>Status</th>
                       <th>Created</th>
@@ -634,7 +632,6 @@ export default function AdminPortal({ user }) {
                         </td>
                         <td>{order.document?.split('/').pop() || 'N/A'}</td>
                         <td>{order.is_b2b ? 'B2B Credit' : 'B2C Cash'}</td>
-                        <td>{order.word_count}</td>
                         <td>₹{parseFloat(order.price || 0).toFixed(2)}</td>
                         <td>
                           <span className={`badge badge-${order.status.toLowerCase().replace(' ', '-')}`}>
@@ -682,10 +679,6 @@ export default function AdminPortal({ user }) {
                         {selectedHistoryOrder.status}
                       </span>
                     </div>
-                  </div>
-                  <div className="detail-item">
-                    <div className="detail-label" style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Words</div>
-                    <div><strong>{selectedHistoryOrder.word_count} words</strong></div>
                   </div>
                   <div className="detail-item">
                     <div className="detail-label" style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Price</div>
@@ -966,11 +959,11 @@ export default function AdminPortal({ user }) {
                     <tbody>
                       <tr>
                         <td>
-                          <strong>Per-Word Rate</strong>
-                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Base Document Rate</div>
+                          <strong>Similarity Check Fee</strong>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Base Package Fee</div>
                         </td>
                         <td style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
-                          Base amount charged per verified word in student documents.
+                          Standard fee for Similarity Check package (₹99).
                         </td>
                         <td>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -993,11 +986,11 @@ export default function AdminPortal({ user }) {
 
                       <tr>
                         <td>
-                          <strong>Express Verification Fee</strong>
-                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Priority Surcharge</div>
+                          <strong>Similarity Reduction Fee</strong>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Reduction Addon</div>
                         </td>
                         <td style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
-                          Flat surcharge added for priority queue processing.
+                          Surcharge for Similarity Reduction package (₹199).
                         </td>
                         <td>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -1020,11 +1013,11 @@ export default function AdminPortal({ user }) {
 
                       <tr>
                         <td>
-                          <strong>Editing Suggestions Fee</strong>
-                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Addon Guidance</div>
+                          <strong>Complete Package Fee</strong>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Full Package Addon</div>
                         </td>
                         <td style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
-                          Optional add-on fee for grammar and phrasing improvement suggestions.
+                          Fee for Complete Package including editing & phrasing suggestions (₹299).
                         </td>
                         <td>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -1044,70 +1037,12 @@ export default function AdminPortal({ user }) {
                           <span className="badge badge-ready">Active</span>
                         </td>
                       </tr>
-
-                      <tr>
-                        <td>
-                          <strong>Referral Credit Bonus</strong>
-                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Growth Incentive</div>
-                        </td>
-                        <td style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
-                          Credit bonus awarded to existing users per successful friend referral.
-                        </td>
-                        <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span style={{ fontWeight: 'bold', color: 'var(--text-muted)' }}>₹</span>
-                            <input 
-                              type="number" 
-                              step="1" 
-                              className="form-control" 
-                              required 
-                              value={pricing.referral_credit} 
-                              onChange={(e) => setPricing({ ...pricing, referral_credit: e.target.value })} 
-                              style={{ padding: '6px 10px', fontSize: '14px', fontWeight: '600' }}
-                            />
-                          </div>
-                        </td>
-                        <td>
-                          <span className="badge badge-ready">Active</span>
-                        </td>
-                      </tr>
                     </tbody>
                   </table>
                 </div>
               </div>
             </form>
 
-            {/* LIVE COMPUTATION ESTIMATE TABLE */}
-            <div className="glass-card">
-              <h3 style={{ fontSize: '18px', marginBottom: '12px' }}>Live Order Estimate Simulation (1,200 Words)</h3>
-              <div className="table-container">
-                <table className="custom-table" style={{ fontSize: '13px' }}>
-                  <thead>
-                    <tr>
-                      <th>Base Rate Calculation (1,200 Words)</th>
-                      <th>Express Surcharge</th>
-                      <th>Editing Suggestions</th>
-                      <th>Calculated Order Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>
-                        <strong>₹{((parseFloat(pricing.per_word_rate) || 0) * 1200).toFixed(2)}</strong>
-                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>1,200 words × ₹{pricing.per_word_rate || '0.00'}/word</div>
-                      </td>
-                      <td>+ ₹{parseFloat(pricing.express_fee || 0).toFixed(2)}</td>
-                      <td>+ ₹{parseFloat(pricing.editing_suggestions_fee || 0).toFixed(2)}</td>
-                      <td>
-                        <strong style={{ fontSize: '16px', color: 'var(--primary)' }}>
-                          ₹{(((parseFloat(pricing.per_word_rate) || 0) * 1200) + (parseFloat(pricing.express_fee) || 0) + (parseFloat(pricing.editing_suggestions_fee) || 0)).toFixed(2)}
-                        </strong>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
           </div>
         )}
 
@@ -1133,7 +1068,7 @@ export default function AdminPortal({ user }) {
             <form onSubmit={handleCompleteOrderSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px', flex: 1, justifyContent: 'space-between' }}>
               
               <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                File: <strong style={{ color: 'var(--text-main)' }}>{selectedOrder.document.split('/').pop()}</strong> ({selectedOrder.word_count} words)
+                File: <strong style={{ color: 'var(--text-main)' }}>{selectedOrder.document.split('/').pop()}</strong>
               </div>
 
               {/* Similarity Score */}

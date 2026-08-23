@@ -5,7 +5,7 @@ from accounts.serializers import UserSerializer
 class PricingConfigSerializer(serializers.ModelSerializer):
     class Meta:
         model = PricingConfig
-        fields = ['per_word_rate', 'express_fee', 'editing_suggestions_fee', 'referral_credit']
+        fields = ['per_word_rate', 'express_fee', 'editing_suggestions_fee']
 
 
 class OrderSerializer(serializers.ModelSerializer):

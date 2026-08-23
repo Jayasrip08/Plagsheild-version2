@@ -614,6 +614,8 @@ function App() {
                     />
                   </div>
                 </div>
+              </>
+            )}
 
             <button type="submit" className="btn btn-primary auth-btn-full" style={{ marginTop: '8px' }} disabled={submittingAuth}>
               {submittingAuth ? (

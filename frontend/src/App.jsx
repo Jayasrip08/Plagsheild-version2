@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import api, { getUserProfile, loginUser, registerUser, googleLoginUser } from './api'
 import StudentPortal from './StudentPortal'
-import CollegePortal from './CollegePortal'
 import AdminPortal from './AdminPortal'
 
 function App() {
@@ -133,9 +132,12 @@ function App() {
     return messages.filter(Boolean).join(' ') || 'Invalid credentials or registration error. Please check values.';
   };
 
+  const [googleAuthPayload, setGoogleAuthPayload] = useState(null);
+  const [googleWhatsApp, setGoogleWhatsApp] = useState('');
+  const [showGooglePhoneModal, setShowGooglePhoneModal] = useState(false);
+
   const handleGoogleCredentialResponse = useCallback(async (credentialResponse) => {
     setAuthError('');
-    setSubmittingAuth(true);
 
     try {
       const payload = decodeGoogleJwt(credentialResponse.credential);
@@ -143,24 +145,42 @@ function App() {
         throw new Error('Unable to read Google account email.');
       }
 
+      setGoogleAuthPayload(payload);
+      setShowGooglePhoneModal(true);
+    } catch (e) {
+      console.error('Google login failed', e);
+      setAuthError(extractApiErrorMessage(e) || e.message || 'Google OAuth login failed.');
+    }
+  }, []);
+
+  const confirmGoogleLoginWithWhatsApp = async (e) => {
+    e.preventDefault();
+    if (!googleWhatsApp.trim()) {
+      setAuthError('Please enter your WhatsApp mobile number.');
+      return;
+    }
+
+    setSubmittingAuth(true);
+    setAuthError('');
+
+    try {
       const loggedInUser = await googleLoginUser({
-        email: payload.email,
-        name: payload.name || payload.given_name || '',
+        email: googleAuthPayload.email,
+        name: googleAuthPayload.name || googleAuthPayload.given_name || '',
+        phone: googleWhatsApp,
         mode: isLogin ? 'login' : 'register',
-        role: isLogin ? undefined : googleRoleRef.current,
-        college_id: !isLogin && (googleRoleRef.current === 'b2b_student' || googleRoleRef.current === 'college_admin') ? googleCollegeIdRef.current || undefined : undefined,
-        department: !isLogin && googleRoleRef.current === 'b2b_student' ? googleDepartmentRef.current || undefined : undefined,
-        admin_secret: !isLogin && googleRoleRef.current === 'super_admin' ? googleAdminSecretRef.current || undefined : undefined,
       });
+
       setUser(loggedInUser);
-      setShowGoogleRoleModal(false);
+      setShowGooglePhoneModal(false);
+      setGoogleWhatsApp('');
     } catch (e) {
       console.error('Google login failed', e);
       setAuthError(extractApiErrorMessage(e) || e.message || 'Google OAuth login failed.');
     } finally {
       setSubmittingAuth(false);
     }
-  }, [isLogin]);
+  };
 
   const isGoogleInitialized = useRef(false);
 
@@ -186,6 +206,23 @@ function App() {
         isGoogleInitialized.current = true;
         setGoogleSdkLoaded(true);
         if (intervalId) clearInterval(intervalId);
+
+        // Render official Google button into container if present
+        setTimeout(() => {
+          const container = document.getElementById('google-btn-container');
+          if (container && window.google?.accounts?.id) {
+            container.innerHTML = '';
+            window.google.accounts.id.renderButton(container, {
+              theme: 'outline',
+              size: 'large',
+              width: '100%',
+              text: 'continue_with',
+              shape: 'rectangular',
+              logo_alignment: 'left',
+            });
+          }
+        }, 100);
+
         return true;
       } catch (err) {
         console.error("Google SDK init error", err);
@@ -318,9 +355,23 @@ function App() {
       return;
     }
 
-    // Direct Google authentication for individual users
     googleRoleRef.current = 'b2c_student';
-    window.google.accounts.id.prompt();
+    
+    // Try Google One Tap prompt with fallback to rendered button iframe click
+    window.google.accounts.id.prompt((notification) => {
+      if (notification.isNotDisplayed() || notification.isSkippedMoment() || notification.isDismissedMoment()) {
+        const btnIframe = document.querySelector('#google-btn-container iframe') || document.querySelector('#google-btn-container div[role="button"]');
+        if (btnIframe) {
+          btnIframe.click();
+        }
+      }
+    });
+
+    // Also trigger iframe directly if available
+    const btnIframe = document.querySelector('#google-btn-container iframe') || document.querySelector('#google-btn-container div[role="button"]');
+    if (btnIframe) {
+      btnIframe.click();
+    }
   };
 
   const handleGoogleRoleConfirm = () => {
@@ -336,17 +387,15 @@ function App() {
     return (
       <div className="loading-screen">
         <div className="spinner"></div>
-        <p>Loading PlagShield Platform...</p>
+        <p>Loading Innolift Integrity Platform...</p>
       </div>
     );
   }
 
-  // Render Portal according to role
+  // Render Portal according to role (Super Admin or User)
   if (user) {
     if (user.role === 'super_admin') {
       return <AdminPortal user={user} setUser={setUser} />;
-    } else if (user.role === 'college_admin') {
-      return <CollegePortal user={user} setUser={setUser} />;
     } else {
       return <StudentPortal user={user} setUser={setUser} />;
     }
@@ -360,21 +409,21 @@ function App() {
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
             </svg>
-            PlagShield
+            Innolift Integrity
           </div>
           <div className="auth-hero-content">
-            <h2>Academic Integrity & Plagiarism Intelligence</h2>
-            <p>Institutional verification platform with automated Turnitin similarity scoring, signed digital audit reports, and B2B credit allocation.</p>
+            <h2>Academic Integrity & Verification Intelligence</h2>
+            <p>Institutional verification platform with automated similarity scoring, signed digital audit reports, and B2B credit allocation.</p>
           </div>
           <div style={{ fontSize: '13px', opacity: 0.8 }}>
-            © {new Date().getFullYear()} PlagShield Platform. All rights reserved.
+            © {new Date().getFullYear()} Innolift Integrity Platform. All rights reserved.
           </div>
         </div>
 
         <div className="auth-form-panel">
           <div className="auth-container">
             <div className="auth-intro">
-              <h1>Welcome to PlagShield</h1>
+              <h1>Welcome to Innolift Integrity</h1>
               <p className="auth-subtitle">
                 Sign in to your account or register for access.
               </p>
@@ -637,17 +686,11 @@ function App() {
             <span>OR</span>
           </div>
 
-          <button 
-            type="button" 
-            className="btn btn-secondary auth-btn-full oauth-btn" 
-            onClick={handleGoogleLogin}
-            disabled={submittingAuth || !googleClientId || !googleSdkLoaded}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12.24 10.285V13.4h6.887c-.648 2.41-2.519 4.155-5.267 4.155-3.327 0-6.027-2.7-6.027-6.027s2.7-6.027 6.027-6.027c1.554 0 2.946.586 4.009 1.545l2.427-2.427C18.663 3.036 15.655 2 12.24 2 6.584 2 2 6.584 2 12.24s4.584 10.24 10.24 10.24c5.795 0 10.254-4.074 10.254-10.24 0-.695-.081-1.355-.223-1.955H12.24z"/>
-            </svg>
-            Continue with Google OAuth
-          </button>
+          <div 
+            id="google-btn-container" 
+            style={{ width: '100%', display: 'flex', justifyContent: 'center', minHeight: '44px', marginBottom: '8px' }}
+          ></div>
+
           {(!googleClientId || !googleSdkLoaded) && (
             <p className="auth-hint">
               {!googleClientId
@@ -667,8 +710,101 @@ function App() {
         </div>
       </div>
     </div>
+      {/* Google Sign In WhatsApp Number Modal */}
+      {showGooglePhoneModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.65)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '20px'
+        }}>
+          <div className="glass-card" style={{
+            maxWidth: '440px',
+            width: '100%',
+            backgroundColor: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '16px',
+            padding: '28px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '10px',
+                backgroundColor: 'rgba(6, 182, 212, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--secondary)'
+              }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                </svg>
+              </div>
+              <div>
+                <h3 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0 }}>Google Sign-In</h3>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>WhatsApp Number Required</p>
+              </div>
+            </div>
 
+            <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '20px', lineHeight: '1.5' }}>
+              Welcome <strong>{googleAuthPayload?.name || 'User'}</strong>! Please provide your WhatsApp number for order notifications and report delivery updates.
+            </p>
 
+            {authError && (
+              <div className="auth-error-banner" style={{ marginBottom: '16px' }}>
+                {authError}
+              </div>
+            )}
+
+            <form onSubmit={confirmGoogleLoginWithWhatsApp}>
+              <div className="form-group" style={{ marginBottom: '20px' }}>
+                <label className="form-label">WhatsApp Mobile Number</label>
+                <input
+                  type="tel"
+                  className="form-control"
+                  placeholder="+91 98765 43210"
+                  value={googleWhatsApp}
+                  onChange={(e) => setGoogleWhatsApp(e.target.value)}
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ flex: 1 }}
+                  onClick={() => {
+                    setShowGooglePhoneModal(false);
+                    setAuthError('');
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ flex: 1.5 }}
+                  disabled={submittingAuth}
+                >
+                  {submittingAuth ? 'Signing in...' : 'Confirm & Sign In'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       </div>
     </div>

@@ -396,15 +396,15 @@ export default function AdminPortal({ user }) {
                           <YAxis stroke="var(--text-muted)" unit="₹" />
                           <Tooltip contentStyle={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }} />
                           <Legend />
-                          <Bar dataKey="B2C" name="Total Cash" fill="var(--primary)" stackId="a" />
+                          <Bar dataKey="B2C" name="Total Revenue" fill="var(--primary)" stackId="a" />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
                   </div>
 
-                  {/* Top B2C Spenders */}
+                  {/* Top Spenders */}
                   <div className="glass-card" style={{ minHeight: '350px' }}>
-                    <h3 style={{ fontSize: '18px', marginBottom: '16px' }}>Top Spenders (B2C)</h3>
+                    <h3 style={{ fontSize: '18px', marginBottom: '16px' }}>Top Spenders</h3>
                     {stats.top_spenders.length === 0 ? (
                       <p style={{ color: 'var(--text-muted)' }}>No spending accounts recorded.</p>
                     ) : (
@@ -492,7 +492,7 @@ export default function AdminPortal({ user }) {
                         <td>
                           <strong>{order.user_details?.username}</strong>
                           <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                            {order.is_b2b ? `B2B (${order.college_name})` : 'B2C (Cash)'}
+                            {order.user_details?.email || 'Direct Account'}
                           </div>
                         </td>
                         <td>{order.document.split('/').pop()}</td>
@@ -610,7 +610,7 @@ export default function AdminPortal({ user }) {
                           </div>
                         </td>
                         <td>{order.document?.split('/').pop() || 'N/A'}</td>
-                        <td>{order.is_b2b ? 'B2B Credit' : 'B2C Cash'}</td>
+                        <td>Online Payment</td>
                         <td>₹{parseFloat(order.price || 0).toFixed(2)}</td>
                         <td>
                           <span className={`badge badge-${order.status.toLowerCase().replace(' ', '-')}`}>
@@ -649,7 +649,7 @@ export default function AdminPortal({ user }) {
                   </div>
                   <div className="detail-item">
                     <div className="detail-label" style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mode</div>
-                    <div><strong>{selectedHistoryOrder.is_b2b ? 'B2B Credit' : 'B2C Cash'}</strong></div>
+                    <div><strong>Online Payment</strong></div>
                   </div>
                   <div className="detail-item">
                     <div className="detail-label" style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</div>
@@ -739,7 +739,7 @@ export default function AdminPortal({ user }) {
               <div className="glass-card">
                 <h3 style={{ fontSize: '20px', marginBottom: '8px' }}>Register New Institutional Account</h3>
                 <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '20px' }}>
-                  Add a new college or university to issue B2B plagiarism verification credits.
+                  Add a new college or university to issue B2B verification credits.
                 </p>
                 <form onSubmit={async (e) => { await handleCreateCollege(e); setCollegeSubTab('list'); }} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <div className="form-group" style={{ marginBottom: '0' }}>

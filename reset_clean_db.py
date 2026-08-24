@@ -10,7 +10,7 @@ from orders.models import Order, PricingConfig
 from payments.models import Payment
 
 def reset_and_seed():
-    print("Clearing all orders, payments, and non-essential users...")
+    print("Clearing all orders, payments, colleges, and users...")
     Payment.objects.all().delete()
     Order.objects.all().delete()
     User.objects.all().delete()
@@ -35,39 +35,12 @@ def reset_and_seed():
         role='super_admin'
     )
 
-    # 3. Demo College
-    college = College.objects.create(
-        college_name="Demo B2B College",
-        credits=150,
-        allocated_credits=150,
-        contact_email='admin@democollege.edu'
-    )
-
-    # 4. College Admin
+    # 3. Demo B2C Student
     User.objects.create_user(
-        username='college_admin',
-        email='admin@democollege.edu',
-        password='admin123',
-        role='college_admin',
-        college=college
-    )
-
-    # 5. B2B Student
-    User.objects.create_user(
-        username='b2b_student',
-        email='student@democollege.edu',
+        username='student',
+        email='student@gmail.com',
         password='student123',
-        role='user',
-        college=college,
-        department='Computer Science'
-    )
-
-    # 6. B2C Student
-    User.objects.create_user(
-        username='student_b2c',
-        email='student_b2c@gmail.com',
-        password='student123',
-        role='user'
+        role='b2c_student'
     )
 
     print("Database reset & seeding complete successfully!")

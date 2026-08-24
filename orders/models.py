@@ -3,6 +3,7 @@ from django.conf import settings
 
 class Order(models.Model):
     STATUS_CHOICES = (
+        ('Pending Payment', 'Pending Payment'),
         ('Submitted', 'Submitted'),
         ('Processing', 'Processing'),
         ('Report Ready', 'Report Ready'),
@@ -39,7 +40,7 @@ class Order(models.Model):
     status = models.CharField(
         max_length=50,
         choices=STATUS_CHOICES,
-        default='Submitted'
+        default='Pending Payment'
     )
 
     # Express check option

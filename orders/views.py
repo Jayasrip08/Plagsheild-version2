@@ -170,9 +170,9 @@ class OrderListCreateView(generics.ListCreateAPIView):
                 if college.contact_email:
                     try:
                         send_mail(
-                            'Low Credit Alert - Plagiarism Checker Platform',
-                            f"Dear Admin,\n\nYour college account credits are running low. Remaining balance: {college.credits} out of {college.allocated_credits}.\n\nPlease renew/top up credits from the dashboard.\n\nBest regards,\nPlagiarism Checker Team",
-                            'admin@plagiarismplatform.com',
+                            'Low Credit Alert - Innolift Integrity Platform',
+                            f"Dear Admin,\n\nYour college account credits are running low. Remaining balance: {college.credits} out of {college.allocated_credits}.\n\nPlease renew/top up credits from the dashboard.\n\nBest regards,\nInnolift Integrity Team",
+                            'admin@innoliftintegrity.com',
                             [college.contact_email],
                             fail_silently=True
                         )
@@ -204,14 +204,13 @@ class OrderListCreateView(generics.ListCreateAPIView):
             else:
                 total_price = config.per_word_rate # ₹99 Similarity Check
 
-            # Create Order (status: Submitted, will wait for Payment verification to proceed)
-            # Or in this view we create order in 'Processing' or 'Submitted' state
+            # Create Order (status: Pending Payment, waiting for payment completion)
             order = Order.objects.create(
                 user=user,
                 document=file,
                 word_count=word_count,
                 price=total_price,
-                status='Submitted',
+                status='Pending Payment',
                 is_express=is_express,
                 has_editing_suggestions=has_suggestions,
                 is_b2b=False
@@ -362,7 +361,7 @@ class OrderInvoiceView(APIView):
 
             header_data = [
                 [
-                    Paragraph("<b>PLAGIARISM PLATFORM</b><br/><font size=8.5 color='#6B7280'>Enterprise Document Verification Platform</font>", brand_style),
+                    Paragraph("<b>INNOLIFT INTEGRITY</b><br/><font size=8.5 color='#6B7280'>Enterprise Document Verification Platform</font>", brand_style),
                     Paragraph("TAX INVOICE<br/><font size=9 color='#6B7280'>Invoice #: INV-%06d</font>" % order.id, title_style)
                 ]
             ]
@@ -406,7 +405,7 @@ class OrderInvoiceView(APIView):
             table_data = [
                 [Paragraph("Item / Service Description", table_header_style), Paragraph("Quantity / Mode", table_header_style), Paragraph("Amount (INR)", table_header_style)],
                 [
-                    Paragraph(f"<b>Plagiarism Check Service</b><br/><font size=8.5 color='#6B7280'>Document: {doc_name}</font>", body_style),
+                    Paragraph(f"<b>Integrity Verification Service</b><br/><font size=8.5 color='#6B7280'>Document: {doc_name}</font>", body_style),
                     Paragraph(f"{order.word_count} words", body_style),
                     Paragraph("₹ %.2f" % order.price if not order.is_b2b else "1 B2B Credit", body_style)
                 ]
@@ -448,7 +447,7 @@ class OrderInvoiceView(APIView):
 
             # Footer / Terms
             footer_text = Paragraph(
-                "<font color='#6B7280' size=8.5><b>Terms & Support:</b> This is an official computer-generated receipt/invoice issued by Plagiarism Platform Inc. For support or queries regarding this document verification, please contact <u>support@plagiarismplatform.com</u>.</font>",
+                "<font color='#6B7280' size=8.5><b>Terms & Support:</b> This is an official computer-generated receipt/invoice issued by Innolift Integrity. For support or queries regarding this document verification, please contact <u>support@innoliftintegrity.com</u>.</font>",
                 body_style
             )
             story.append(footer_text)
@@ -527,14 +526,14 @@ class SuperAdminUpdateOrderView(APIView):
 
             # Simulate Notifications (Email & WhatsApp)
             print(f"[NOTIFICATION] Email and WhatsApp sent to user '{order.user.username}' (phone: {order.user.phone or 'N/A'}, email: {order.user.email})")
-            print(f"[WHATSAPP SIMULATION] Message: Your plagiarism report for {os.path.basename(order.document.name)} is ready! Similarity: {similarity_score}%. Download link valid for 48 hours: {secure_link}")
+            print(f"[WHATSAPP SIMULATION] Message: Your document integrity report for {os.path.basename(order.document.name)} is ready! Similarity: {similarity_score}%. Download link valid for 48 hours: {secure_link}")
 
             try:
                 # Send Email
                 send_mail(
-                    'Your Plagiarism Check Report is Ready!',
-                    f"Hi {order.user.username},\n\nYour document '{os.path.basename(order.document.name)}' has been verified.\nSimilarity Score: {similarity_score}%\n\nYou can access the secure download link below. Note: This link is valid only for 48 hours:\n{request.build_absolute_uri(secure_link)}\n\nBest regards,\nPlagiarism Checker Platform Support Team",
-                    'support@plagiarismplatform.com',
+                    'Your Integrity Verification Report is Ready!',
+                    f"Hi {order.user.username},\n\nYour document '{os.path.basename(order.document.name)}' has been verified.\nSimilarity Score: {similarity_score}%\n\nYou can access the secure download link below. Note: This link is valid only for 48 hours:\n{request.build_absolute_uri(secure_link)}\n\nBest regards,\nInnolift Integrity Support Team",
+                    'support@innoliftintegrity.com',
                     [order.user.email],
                     fail_silently=True
                 )

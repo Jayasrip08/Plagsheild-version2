@@ -137,9 +137,10 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
     def validate(self, attrs):
         username = attrs.get('username')
-        if username and '@' in username:
+        if username:
             try:
-                user = User.objects.get(email__iexact=username)
+                from django.db.models import Q
+                user = User.objects.get(Q(email__iexact=username) | Q(username__iexact=username))
                 attrs['username'] = user.username
             except User.DoesNotExist:
                 pass

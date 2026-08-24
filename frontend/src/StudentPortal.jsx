@@ -13,7 +13,6 @@ export default function StudentPortal({ user, setUser }) {
   const [estimate, setEstimate] = useState(null);
   const [isExpress, setIsExpress] = useState(false);
   const [hasSuggestions, setHasSuggestions] = useState(false);
-  const [useCredits, setUseCredits] = useState(false);
   const [submittingOrder, setSubmittingOrder] = useState(false);
   
   // Checkout & Upsell Modal
@@ -122,10 +121,6 @@ export default function StudentPortal({ user, setUser }) {
       formData.append('document', file);
       formData.append('is_express', isExpress);
       formData.append('has_suggestions', hasSuggestions);
-      
-      // Determine if B2B credits can be used
-      const isB2B = useCredits && user.college_id && user.department;
-      formData.append('is_b2b', isB2B);
 
       const res = await api.post('orders/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -133,19 +128,7 @@ export default function StudentPortal({ user, setUser }) {
 
       const orderData = res.data;
       setCurrentOrderId(orderData.id);
-
-      if (isB2B) {
-        // B2B order processed directly
-        setShowUpsell(true);
-        setFile(null);
-        setEstimate(null);
-        fetchOrders();
-        setTrackedOrder(orderData);
-        setActiveTab('tracking');
-      } else {
-        // B2C: Proceed to Payment
-        initiatePayment(orderData);
-      }
+      initiatePayment(orderData);
     } catch (e) {
       console.error("Failed to submit order", e);
       alert(e.response?.data?.error || "Error creating order. Please try again.");
@@ -168,8 +151,8 @@ export default function StudentPortal({ user, setUser }) {
           key: payData.key,
           amount: payData.amount,
           currency: payData.currency,
-          name: 'Plagiarism Checker Platform',
-          description: `Plagiarism verification - Order #${order.id}`,
+          name: 'Innolift Integrity Platform',
+          description: `Integrity verification - Order #${order.id}`,
           order_id: payData.id,
           handler: async (response) => {
             await verifyPayment({
@@ -308,7 +291,7 @@ export default function StudentPortal({ user, setUser }) {
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
           </svg>
-          PlagShield
+          Innolift Integrity
         </div>
         <div className="sidebar-nav">
           <button 
@@ -360,7 +343,7 @@ export default function StudentPortal({ user, setUser }) {
         {/* TAB 1: NEW DOCUMENT CHECK */}
         {activeTab === 'new_check' && (
           <div>
-            <h2 style={{ fontSize: '32px', marginBottom: '8px' }}>Plagiarism Document Check</h2>
+            <h2 style={{ fontSize: '32px', marginBottom: '8px' }}>Integrity Document Check</h2>
             <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>
               Upload your research papers, theses, or essays. Results verified within turnitin queues.
             </p>
@@ -420,23 +403,26 @@ export default function StudentPortal({ user, setUser }) {
 
               {estimate && (
                 <div style={{ backgroundColor: 'var(--bg-tertiary)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                  <h3 style={{ fontSize: '18px', marginBottom: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
+                  <h3 style={{ fontSize: '18px', marginBottom: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
                     Calculation Summary
                   </h3>
                   
-                  {!useCredits && (
-                    <>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '18px', fontWeight: 'bold' }}>
-                        <span>Selected Package Price:</span>
-                        <span style={{ color: 'var(--secondary)' }}>₹{estimate.total_price.toFixed(2)}</span>
-                      </div>
-                    </>
-                  )}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Document Word Count:</span>
+                      <strong style={{ color: 'var(--text-main)' }}>{estimate.word_count?.toLocaleString()} words</strong>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '18px', fontWeight: 'bold', paddingTop: '10px', borderTop: '1px dashed var(--border-color)' }}>
+                      <span>Total Amount:</span>
+                      <span style={{ color: 'var(--secondary)' }}>₹{estimate.total_price.toFixed(2)}</span>
+                    </div>
+                  </div>
                 </div>
               )}
 
               {/* Exclusive 3 Package Options Selection */}
-              {file && !useCredits && (
+              {file && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '4px' }}>Select Service Tier</h3>
 
@@ -466,7 +452,7 @@ export default function StudentPortal({ user, setUser }) {
                         <strong>Similarity Check</strong>
                         <strong style={{ color: 'var(--secondary)', fontSize: '16px' }}>₹{pricingConfig.per_word_rate}</strong>
                       </div>
-                      <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>Standard automated plagiarism & similarity verification report.</p>
+                      <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>Standard automated similarity & integrity verification report.</p>
                     </div>
                   </label>
 
@@ -546,7 +532,7 @@ export default function StudentPortal({ user, setUser }) {
                       Creating checkout...
                     </div>
                   ) : (
-                    useCredits ? "Submit Check using B2B credits" : "Proceed to Payment & Start Check"
+                    "Proceed to Payment & Start Check"
                   )}
                 </button>
               )}
@@ -572,7 +558,7 @@ export default function StudentPortal({ user, setUser }) {
               <div className="glass-card" style={{ padding: '60px', textAlign: 'center' }}>
                 <p style={{ color: 'var(--text-muted)', marginBottom: '16px' }}>You have not submitted any documents yet.</p>
                 <button className="btn btn-primary" onClick={() => setActiveTab('new_check')}>
-                  New Plagiarism Check
+                  New Document Check
                 </button>
               </div>
             ) : (
@@ -596,32 +582,37 @@ export default function StudentPortal({ user, setUser }) {
                         <td>#{o.id}</td>
                         <td style={{ fontWeight: '600' }}>
                           {o.document.split('/').pop()}
-                          {o.is_express && <span style={{ marginLeft: '8px', fontSize: '10px', padding: '2px 6px', background: 'rgba(6, 182, 212, 0.2)', color: 'var(--secondary)', borderRadius: '4px' }}>EXPRESS</span>}
                         </td>
                         <td>{new Date(o.created_at).toLocaleDateString()}</td>
                         <td>
-                          {o.is_b2b ? (
-                            <span style={{ color: 'var(--secondary)', fontSize: '12px', fontWeight: 'bold' }}>B2B CREDIT</span>
-                          ) : (
-                            <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>B2C CASH</span>
-                          )}
+                          <span style={{ fontSize: '12px', fontWeight: '500', color: 'var(--secondary)' }}>
+                            {o.has_editing_suggestions ? 'Complete Package' : o.is_express ? 'Express Check' : 'Standard Check'}
+                          </span>
                         </td>
-                        <td>{o.is_b2b ? "—" : `₹${parseFloat(o.price).toFixed(2)}`}</td>
+                        <td>₹{parseFloat(o.price).toFixed(2)}</td>
                         <td style={{ fontWeight: 'bold', color: o.similarity_score !== null ? (o.similarity_score > 25 ? 'var(--danger)' : 'var(--success)') : 'inherit' }}>
                           {o.similarity_score !== null ? `${o.similarity_score}%` : 'Pending'}
                         </td>
                         <td>
-                          <span className={`badge badge-${o.status.toLowerCase().replace(' ', '-')}`}>
+                          <span className={`badge badge-${o.status.toLowerCase().replace(/\s+/g, '-')}`} style={
+                            o.status === 'Pending Payment' ? { backgroundColor: 'rgba(234, 179, 8, 0.2)', color: '#eab308', border: '1px solid #eab308' } : {}
+                          }>
                             {o.status}
                           </span>
                         </td>
                         <td>
                           <div style={{ display: 'flex', gap: '8px' }}>
-                            <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => { setTrackedOrder(o); setActiveTab('tracking'); }}>
-                              Track
-                            </button>
+                            {o.status === 'Pending Payment' ? (
+                              <button className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => initiatePayment(o)}>
+                                Pay Now
+                              </button>
+                            ) : (
+                              <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => { setTrackedOrder(o); setActiveTab('tracking'); }}>
+                                Track
+                              </button>
+                            )}
                             
-                            {!o.is_b2b && (
+                            {!o.is_b2b && o.status !== 'Pending Payment' && (
                               <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => downloadInvoice(o.id)}>
                                 Invoice
                               </button>
@@ -789,7 +780,7 @@ export default function StudentPortal({ user, setUser }) {
               Add Detailed Editing Suggestions for only ₹{pricingConfig.editing_suggestions_fee}?
             </p>
             <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '24px', lineHeight: '1.5' }}>
-              Take your research paper to the next level. Over 25% of researchers add this option. Receive automatic highlights on grammar, poor structural flow, and vocabulary enhancements directly attached in your plagiarism audit report.
+              Take your research paper to the next level. Over 25% of researchers add this option. Receive automatic highlights on grammar, poor structural flow, and vocabulary enhancements directly attached in your integrity audit report.
             </p>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
               <button className="btn btn-primary" onClick={() => handleUpsellDecision(true)}>

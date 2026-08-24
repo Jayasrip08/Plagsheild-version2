@@ -47,15 +47,17 @@ class GoogleLoginView(APIView):
         counter = 1
         user = None
 
+        phone = request.data.get('phone')
+
         try:
             user = User.objects.get(email=email)
             if mode == 'register':
                 if user.role != role:
                     return Response({"error": "This email is already registered with a different role. One email can only be used for one role."}, status=status.HTTP_400_BAD_REQUEST)
+            if phone:
+                user.phone = phone
+                user.save()
         except User.DoesNotExist:
-            if mode == 'login':
-                return Response({"error": "No account found for this Google email. Please register first."}, status=status.HTTP_400_BAD_REQUEST)
-
             while User.objects.filter(username=username).exists():
                 username = f"{base_username}_{counter}"
                 counter += 1
@@ -73,6 +75,7 @@ class GoogleLoginView(APIView):
                 email=email,
                 first_name=name,
                 role=role,
+                phone=phone,
                 college=college,
                 department=department,
             )

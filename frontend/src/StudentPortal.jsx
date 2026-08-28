@@ -151,7 +151,7 @@ export default function StudentPortal({ user, setUser }) {
           key: payData.key,
           amount: payData.amount,
           currency: payData.currency,
-          name: 'Innolift Integrity Platform',
+          name: 'InnoresearX Platform',
           description: `Integrity verification - Order #${order.id}`,
           order_id: payData.id,
           handler: async (response) => {
@@ -291,7 +291,7 @@ export default function StudentPortal({ user, setUser }) {
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
           </svg>
-          Innolift Integrity
+          InnoresearX
         </div>
         <div className="sidebar-nav">
           <button 

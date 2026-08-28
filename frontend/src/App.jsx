@@ -387,7 +387,7 @@ function App() {
     return (
       <div className="loading-screen">
         <div className="spinner"></div>
-        <p>Loading InnoresearX Platform...</p>
+        <p>Loading Innoresearx Platform...</p>
       </div>
     );
   }
@@ -409,21 +409,21 @@ function App() {
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
             </svg>
-            InnoresearX
+            Innoresearx
           </div>
           <div className="auth-hero-content">
             <h2>Academic Integrity & Verification Intelligence</h2>
             <p>Institutional verification platform with automated similarity scoring, signed digital audit reports, and B2B credit allocation.</p>
           </div>
           <div style={{ fontSize: '13px', opacity: 0.8 }}>
-            © {new Date().getFullYear()} InnoresearX Platform. All rights reserved.
+            © {new Date().getFullYear()} Innoresearx Platform. All rights reserved.
           </div>
         </div>
 
         <div className="auth-form-panel">
           <div className="auth-container">
             <div className="auth-intro">
-              <h1>Welcome to InnoresearX</h1>
+              <h1>Welcome to Innoresearx</h1>
               <p className="auth-subtitle">
                 Sign in to your account or register for access.
               </p>

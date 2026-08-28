@@ -179,7 +179,7 @@ export default function CollegePortal({ user }) {
       <aside className="sidebar">
         <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <School size={24} style={{ color: 'var(--primary)' }} />
-          <span>College Admin</span>
+          <span>Innoresearx College</span>
         </div>
         <div className="sidebar-nav">
           <button 

@@ -170,8 +170,8 @@ class OrderListCreateView(generics.ListCreateAPIView):
                 if college.contact_email:
                     try:
                         send_mail(
-                            'Low Credit Alert - InnoresearX Platform',
-                            f"Dear Admin,\n\nYour college account credits are running low. Remaining balance: {college.credits} out of {college.allocated_credits}.\n\nPlease renew/top up credits from the dashboard.\n\nBest regards,\nInnoresearX Team",
+                            'Low Credit Alert - Innoresearx Platform',
+                            f"Dear Admin,\n\nYour college account credits are running low. Remaining balance: {college.credits} out of {college.allocated_credits}.\n\nPlease renew/top up credits from the dashboard.\n\nBest regards,\nInnoresearx Team",
                             'admin@innoresearx.com',
                             [college.contact_email],
                             fail_silently=True
@@ -447,7 +447,7 @@ class OrderInvoiceView(APIView):
 
             # Footer / Terms
             footer_text = Paragraph(
-                "<font color='#6B7280' size=8.5><b>Terms & Support:</b> This is an official computer-generated receipt/invoice issued by InnoresearX. For support or queries regarding this document verification, please contact <u>support@innoresearx.com</u>.</font>",
+                "<font color='#6B7280' size=8.5><b>Terms & Support:</b> This is an official computer-generated receipt/invoice issued by Innoresearx. For support or queries regarding this document verification, please contact <u>support@innoresearx.com</u>.</font>",
                 body_style
             )
             story.append(footer_text)
@@ -532,7 +532,7 @@ class SuperAdminUpdateOrderView(APIView):
                 # Send Email
                 send_mail(
                     'Your Integrity Verification Report is Ready!',
-                    f"Hi {order.user.username},\n\nYour document '{os.path.basename(order.document.name)}' has been verified.\nSimilarity Score: {similarity_score}%\n\nYou can access the secure download link below. Note: This link is valid only for 48 hours:\n{request.build_absolute_uri(secure_link)}\n\nBest regards,\nInnoresearX Support Team",
+                    f"Hi {order.user.username},\n\nYour document '{os.path.basename(order.document.name)}' has been verified.\nSimilarity Score: {similarity_score}%\n\nYou can access the secure download link below. Note: This link is valid only for 48 hours:\n{request.build_absolute_uri(secure_link)}\n\nBest regards,\nInnoresearx Support Team",
                     'support@innoresearx.com',
                     [order.user.email],
                     fail_silently=True

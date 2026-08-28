@@ -16,17 +16,21 @@ def seed():
         id=1,
         defaults={
             'per_word_rate': 99.00,
-            'express_fee': 199.00,
-            'editing_suggestions_fee': 299.00
+            'express_fee': 299.00,
+            'editing_suggestions_fee': 549.00
         }
     )
+    config.per_word_rate = 99.00
+    config.express_fee = 299.00
+    config.editing_suggestions_fee = 549.00
+    config.save()
     if created:
         print("Created PricingConfig.")
     else:
-        print("PricingConfig already exists.")
+        print("Updated PricingConfig.")
 
     # 2. Create or Update Super Admin
-    admin_user = User.objects.filter(role='super_admin').first()
+    admin_user = User.objects.filter(role='super_admin').exclude(username='demo_admin').first()
     if admin_user:
         admin_user.email = 'innoliftventures@gmail.com'
         admin_user.set_password('Admin@innolift2026!')
@@ -40,6 +44,26 @@ def seed():
             role='super_admin'
         )
         print("Created Super Admin user 'innoliftventures@gmail.com' (password: Admin@innolift2026!).")
+
+    # 2b. Demo Super Admin for the admin panel
+    demo_admin, demo_created = User.objects.update_or_create(
+        username='demo_admin',
+        defaults={
+            'email': 'admin@innoresearx.com',
+            'role': 'super_admin',
+            'first_name': 'Demo',
+            'last_name': 'Admin',
+            'is_staff': True,
+            'is_superuser': True,
+            'is_active': True,
+        },
+    )
+    demo_admin.set_password('Demo@123')
+    demo_admin.save()
+    print(
+        "Created Demo Super Admin." if demo_created else "Updated Demo Super Admin.",
+        "Login: admin@innoresearx.com / Demo@123",
+    )
 
     # 3. Create College B2B
     college, created = College.objects.get_or_create(

@@ -1,3 +1,10 @@
 from django.contrib import admin
+from .models import SupportTicket
 
-# Register your models here.
+
+@admin.register(SupportTicket)
+class SupportTicketAdmin(admin.ModelAdmin):
+    list_display = ('id', 'category', 'topic', 'user', 'status', 'created_at')
+    list_filter = ('category', 'status', 'created_at')
+    search_fields = ('topic', 'message', 'user__username', 'user__email')
+    readonly_fields = ('created_at', 'updated_at')

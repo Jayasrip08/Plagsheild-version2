@@ -1,3 +1,4 @@
+import json
 import pypdf
 import docx
 import os
@@ -13,12 +14,54 @@ from rest_framework.response import Response
 
 from .models import Order, PricingConfig
 from .serializers import OrderSerializer, PricingConfigSerializer
+from .pricing import default_pricing_kwargs, gst_breakdown, package_catalog, PACKAGE_LABELS, resolve_package
 from accounts.models import User
 from accounts.permissions import IsSuperAdmin, IsCollegeAdmin
 from colleges.models import College
 
 # Create signer for secure download link
 signer = TimestampSigner()
+MAX_UPLOAD_BYTES = 25 * 1024 * 1024
+ALLOWED_EXTENSIONS = ('.pdf', '.doc', '.docx')
+
+
+def extract_submission_meta(request):
+    raw_co_authors = request.data.get('co_authors') or '[]'
+    if isinstance(raw_co_authors, str):
+        try:
+            co_authors = json.loads(raw_co_authors)
+        except json.JSONDecodeError:
+            co_authors = []
+    elif isinstance(raw_co_authors, list):
+        co_authors = raw_co_authors
+    else:
+        co_authors = []
+
+    cleaned = []
+    for item in co_authors:
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get('name') or '').strip()
+        if not name:
+            continue
+        cleaned.append({
+            'name': name,
+            'email': str(item.get('email') or '').strip(),
+            'institution': str(item.get('institution') or '').strip(),
+        })
+
+    return {
+        'paper_title': str(request.data.get('paper_title') or '').strip(),
+        'paper_type': str(request.data.get('paper_type') or '').strip(),
+        'subject_area': str(request.data.get('subject_area') or '').strip(),
+        'purpose': str(request.data.get('purpose') or '').strip(),
+        'keywords': str(request.data.get('keywords') or '').strip(),
+        'author_name': str(request.data.get('author_name') or '').strip(),
+        'author_email': str(request.data.get('author_email') or '').strip(),
+        'author_institution': str(request.data.get('author_institution') or '').strip(),
+        'author_country': str(request.data.get('author_country') or '').strip(),
+        'co_authors': cleaned,
+    }
 
 def get_word_count(file):
     name = file.name.lower()
@@ -57,31 +100,23 @@ class WordCountEstimateView(APIView):
             return Response({"error": "No file uploaded"}, status=status.HTTP_400_BAD_REQUEST)
         
         uploaded_file = request.FILES['file']
-        is_express = request.data.get('is_express') == 'true' or request.data.get('is_express') is True
-        has_suggestions = request.data.get('has_suggestions') == 'true' or request.data.get('has_suggestions') is True
-        
         word_count = get_word_count(uploaded_file)
-        
-        # Calculate pricing based on flat standalone package selection
+
         config = PricingConfig.objects.last()
         if not config:
-            config = PricingConfig.objects.create(
-                per_word_rate=99.00,
-                express_fee=199.00,
-                editing_suggestions_fee=299.00
-            )
-            
-        if has_suggestions:
-            total_price = config.editing_suggestions_fee # ₹299 Complete Package
-        elif is_express:
-            total_price = config.express_fee # ₹199 Similarity Reduction
-        else:
-            total_price = config.per_word_rate # ₹99 Similarity Check
-            
+            config = PricingConfig.objects.create(**default_pricing_kwargs())
+
+        package, total_price, _flags = resolve_package(request.data, config)
+        taxable, gst, gross = gst_breakdown(total_price)
+
         return Response({
             "filename": uploaded_file.name,
             "word_count": word_count,
-            "total_price": round(float(total_price), 2)
+            "package": package,
+            "package_label": PACKAGE_LABELS[package],
+            "taxable_value": float(taxable),
+            "gst": float(gst),
+            "total_price": float(gross),
         })
 
 
@@ -95,13 +130,22 @@ class OrderListCreateView(generics.ListCreateAPIView):
             search_query = self.request.query_params.get('search', '').strip()
             status_query = self.request.query_params.get('status', '').strip()
             if search_query:
-                search_filters = Q(document__icontains=search_query) | Q(user__username__icontains=search_query) | Q(user__email__icontains=search_query)
+                search_filters = (
+                    Q(document__icontains=search_query)
+                    | Q(paper_title__icontains=search_query)
+                    | Q(author_name__icontains=search_query)
+                    | Q(user__username__icontains=search_query)
+                    | Q(user__email__icontains=search_query)
+                    | Q(payment__razorpay_payment_id__icontains=search_query)
+                    | Q(payment__razorpay_order_id__icontains=search_query)
+                    | Q(payment__transaction_id__icontains=search_query)
+                )
                 if search_query.isdigit():
-                    search_filters |= Q(user__id=int(search_query))
+                    search_filters |= Q(user__id=int(search_query)) | Q(id=int(search_query))
                 queryset = queryset.filter(search_filters)
             if status_query:
                 queryset = queryset.filter(status__iexact=status_query)
-            return queryset.order_by('-created_at')
+            return queryset.select_related('user', 'college', 'payment').order_by('-created_at')
         elif user.role == 'college_admin':
             # Submissions for all students in this college
             if not user.college:
@@ -126,10 +170,10 @@ class OrderListCreateView(generics.ListCreateAPIView):
             if max_similarity:
                 queryset = queryset.filter(similarity_score__lte=float(max_similarity))
                 
-            return queryset.order_by('-created_at')
+            return queryset.select_related('user', 'college', 'payment').order_by('-created_at')
         else:
             # Normal B2C user sees only their own orders
-            return Order.objects.filter(user=user).order_by('-created_at')
+            return Order.objects.filter(user=user).select_related('payment', 'college').order_by('-created_at')
 
     def create(self, request, *args, **kwargs):
         user = request.user
@@ -137,18 +181,30 @@ class OrderListCreateView(generics.ListCreateAPIView):
             return Response({"error": "Document file is required"}, status=status.HTTP_400_BAD_REQUEST)
             
         file = request.FILES['document']
-        is_express = request.data.get('is_express') == 'true' or request.data.get('is_express') is True
-        has_suggestions = request.data.get('has_suggestions') == 'true' or request.data.get('has_suggestions') is True
+        filename = (file.name or '').lower()
+        if not filename.endswith(ALLOWED_EXTENSIONS):
+            return Response(
+                {"error": "Accepted formats are PDF, DOC, and DOCX."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if file.size > MAX_UPLOAD_BYTES:
+            return Response(
+                {"error": "Maximum file size is 25 MB."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        meta = extract_submission_meta(request)
+        if not meta['paper_title']:
+            return Response({"error": "Paper title is required."}, status=status.HTTP_400_BAD_REQUEST)
+
         is_b2b_submission = request.data.get('is_b2b') == 'true' or request.data.get('is_b2b') is True
 
         word_count = get_word_count(file)
         config = PricingConfig.objects.last()
         if not config:
-            config = PricingConfig.objects.create(
-                per_word_rate=99.00,
-                express_fee=199.00,
-                editing_suggestions_fee=299.00
-            )
+            config = PricingConfig.objects.create(**default_pricing_kwargs())
+
+        package, total_price, package_flags = resolve_package(request.data, config)
 
         if is_b2b_submission:
             # Check B2B eligibility
@@ -186,24 +242,18 @@ class OrderListCreateView(generics.ListCreateAPIView):
                 word_count=word_count,
                 price=0.00,
                 status='Submitted',
-                is_express=is_express,
-                has_editing_suggestions=has_suggestions,
+                package_tier=package,
+                is_express=package_flags['is_express'],
+                has_editing_suggestions=package_flags['has_editing_suggestions'],
                 is_b2b=True,
                 college=college,
-                department=user.department or 'General'
+                department=user.department or 'General',
+                **meta,
             )
             serializer = OrderSerializer(order)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
             
         else:
-            # B2C Billed Order - Standalone Tier Selection
-            if has_suggestions:
-                total_price = config.editing_suggestions_fee # ₹299 Complete Package
-            elif is_express:
-                total_price = config.express_fee # ₹199 Similarity Reduction
-            else:
-                total_price = config.per_word_rate # ₹99 Similarity Check
-
             # Create Order (status: Pending Payment, waiting for payment completion)
             order = Order.objects.create(
                 user=user,
@@ -211,16 +261,18 @@ class OrderListCreateView(generics.ListCreateAPIView):
                 word_count=word_count,
                 price=total_price,
                 status='Pending Payment',
-                is_express=is_express,
-                has_editing_suggestions=has_suggestions,
-                is_b2b=False
+                package_tier=package,
+                is_express=package_flags['is_express'],
+                has_editing_suggestions=package_flags['has_editing_suggestions'],
+                is_b2b=False,
+                **meta,
             )
             serializer = OrderSerializer(order)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class OrderDetailView(generics.RetrieveAPIView):
-    queryset = Order.objects.all()
+    queryset = Order.objects.select_related('user', 'college', 'payment')
     serializer_class = OrderSerializer
 
 
@@ -235,9 +287,10 @@ class AddEditingSuggestionsView(APIView):
             return Response({"message": "Editing suggestions already added"}, status=status.HTTP_200_OK)
 
         config = PricingConfig.objects.last()
-        upsell_fee = config.editing_suggestions_fee if config else 299.00
+        upsell_fee = config.editing_suggestions_fee if config else default_pricing_kwargs()['editing_suggestions_fee']
         
         order.has_editing_suggestions = True
+        order.package_tier = 'complete'
         order.price += upsell_fee
         order.save()
 
@@ -401,37 +454,44 @@ class OrderInvoiceView(APIView):
             story.append(info_table)
             story.append(Spacer(1, 20))
 
-            # Line Items Table
-            table_data = [
-                [Paragraph("Item / Service Description", table_header_style), Paragraph("Quantity / Mode", table_header_style), Paragraph("Amount (INR)", table_header_style)],
-                [
-                    Paragraph(f"<b>Integrity Verification Service</b><br/><font size=8.5 color='#6B7280'>Document: {doc_name}</font>", body_style),
-                    Paragraph(f"{order.word_count} words", body_style),
-                    Paragraph("₹ %.2f" % order.price if not order.is_b2b else "1 B2B Credit", body_style)
+            # Line Items Table — GST-inclusive customer price with 18% split
+            package = order.package_tier or ('complete' if order.has_editing_suggestions else 'improve' if order.is_express else 'check')
+            package_name = PACKAGE_LABELS.get(package, 'Check — Similarity Check')
+            if order.is_b2b:
+                table_data = [
+                    [Paragraph("Item / Service Description", table_header_style), Paragraph("Taxable Value", table_header_style), Paragraph("GST 18%", table_header_style), Paragraph("Amount (INR)", table_header_style)],
+                    [
+                        Paragraph(f"<b>{package_name}</b><br/><font size=8.5 color='#6B7280'>Document: {doc_name}</font>", body_style),
+                        Paragraph("—", body_style),
+                        Paragraph("—", body_style),
+                        Paragraph("1 B2B Credit", body_style),
+                    ],
+                    [
+                        Paragraph("<b>Total Amount Billed</b>", body_style),
+                        Paragraph("", body_style),
+                        Paragraph("", body_style),
+                        Paragraph("<b>1 Credit</b>", body_style),
+                    ],
                 ]
-            ]
+            else:
+                taxable, gst, gross = gst_breakdown(order.price)
+                table_data = [
+                    [Paragraph("Item / Service Description", table_header_style), Paragraph("Taxable Value", table_header_style), Paragraph("GST 18%", table_header_style), Paragraph("Customer Pays", table_header_style)],
+                    [
+                        Paragraph(f"<b>{package_name}</b><br/><font size=8.5 color='#6B7280'>GST included · Document: {doc_name}</font>", body_style),
+                        Paragraph("₹ %.2f" % taxable, body_style),
+                        Paragraph("₹ %.2f" % gst, body_style),
+                        Paragraph("₹ %.2f" % gross, body_style),
+                    ],
+                    [
+                        Paragraph("<b>Total (GST included)</b>", body_style),
+                        Paragraph("₹ %.2f" % taxable, body_style),
+                        Paragraph("₹ %.2f" % gst, body_style),
+                        Paragraph("<b>₹ %.2f</b>" % gross, body_style),
+                    ],
+                ]
 
-            if order.is_express:
-                table_data.append([
-                    Paragraph("<b>Express Priority Surcharge</b><br/><font size=8.5 color='#6B7280'>Fast-track Turnitin queue processing</font>", body_style),
-                    Paragraph("1 Addon", body_style),
-                    Paragraph("Included", body_style)
-                ])
-            if order.has_editing_suggestions:
-                table_data.append([
-                    Paragraph("<b>Grammar & Phrasing Suggestions</b><br/><font size=8.5 color='#6B7280'>Comprehensive writing improvement report</font>", body_style),
-                    Paragraph("1 Addon", body_style),
-                    Paragraph("Included", body_style)
-                ])
-
-            # Total Row
-            table_data.append([
-                Paragraph("<b>Total Amount Billed</b>", body_style),
-                Paragraph("", body_style),
-                Paragraph("<b>₹ %.2f</b>" % order.price if not order.is_b2b else "<b>1 Credit</b>", body_style)
-            ])
-
-            summary_table = Table(table_data, colWidths=[310, 120, 110])
+            summary_table = Table(table_data, colWidths=[220, 110, 100, 110])
             summary_table.setStyle(TableStyle([
                 ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#4F46E5")),
                 ('ALIGN', (1,1), (-1,-1), 'LEFT'),
@@ -477,7 +537,7 @@ class SuperAdminOrderQueueView(generics.ListAPIView):
 
     def get_queryset(self):
         # Return all pending orders (B2B, Paid B2C, or newly Submitted orders), sorted express priority first
-        return Order.objects.exclude(status='Report Ready').order_by('-is_express', '-created_at')
+        return Order.objects.exclude(status='Report Ready').select_related('user', 'college', 'payment').order_by('-is_express', '-created_at')
 
 
 class SuperAdminUpdateOrderView(APIView):
@@ -558,13 +618,16 @@ class PricingConfigView(APIView):
     def get(self, request):
         config = PricingConfig.objects.last()
         if not config:
-            config = PricingConfig.objects.create(
-                per_word_rate=99.00,
-                express_fee=199.00,
-                editing_suggestions_fee=299.00
-            )
+            config = PricingConfig.objects.create(**default_pricing_kwargs())
         serializer = PricingConfigSerializer(config)
-        return Response(serializer.data)
+        payload = serializer.data
+        payload['gst_rate'] = 18
+        payload['packages'] = package_catalog(config)
+        # Always expose GST-inclusive public prices, never leftover per-word 0.50
+        payload['per_word_rate'] = payload['packages']['check']['price']
+        payload['express_fee'] = payload['packages']['improve']['price']
+        payload['editing_suggestions_fee'] = payload['packages']['complete']['price']
+        return Response(payload)
 
     def post(self, request):
         # Update configuration (superadmin only)

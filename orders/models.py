@@ -43,6 +43,29 @@ class Order(models.Model):
         default='Pending Payment'
     )
 
+    keywords = models.CharField(max_length=500, blank=True, default='')
+    paper_title = models.CharField(max_length=500, blank=True, default='')
+    paper_type = models.CharField(max_length=80, blank=True, default='')
+    subject_area = models.CharField(max_length=80, blank=True, default='')
+    purpose = models.CharField(max_length=80, blank=True, default='')
+
+    author_name = models.CharField(max_length=255, blank=True, default='')
+    author_email = models.EmailField(blank=True, default='')
+    author_institution = models.CharField(max_length=255, blank=True, default='')
+    author_country = models.CharField(max_length=100, blank=True, default='')
+    co_authors = models.JSONField(default=list, blank=True)
+
+    PACKAGE_CHOICES = (
+        ('check', 'Check'),
+        ('improve', 'Improve'),
+        ('complete', 'Complete'),
+    )
+    package_tier = models.CharField(
+        max_length=20,
+        choices=PACKAGE_CHOICES,
+        default='check'
+    )
+
     # Express check option
     is_express = models.BooleanField(default=False)
 
@@ -86,16 +109,16 @@ class PricingConfig(models.Model):
     express_fee = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        default=199.00
+        default=299.00
     )
     editing_suggestions_fee = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        default=299.00
+        default=549.00
     )
     updated_at = models.DateTimeField(
         auto_now=True
     )
 
     def __str__(self):
-        return f"Pricing Config (Similarity Check: ₹{self.per_word_rate}, Similarity Reduction: ₹{self.express_fee}, Complete Package: ₹{self.editing_suggestions_fee})"
+        return f"Pricing Config (Check: ₹{self.per_word_rate}, Improve: ₹{self.express_fee}, Complete: ₹{self.editing_suggestions_fee})"

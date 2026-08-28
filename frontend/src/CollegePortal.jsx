@@ -14,9 +14,11 @@ import {
   UserPlus, 
   FileSpreadsheet, 
   CheckCircle2, 
+  Headphones,
   School 
 } from 'lucide-react';
 import ProfilePage from './ProfilePage';
+import HelpSupport from './HelpSupport';
 
 export default function CollegePortal({ user }) {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -230,6 +232,14 @@ export default function CollegePortal({ user }) {
             <User size={18} />
             My Profile
           </button>
+          <button 
+            className={`nav-link ${activeTab === 'support' ? 'active' : ''}`}
+            onClick={() => setActiveTab('support')}
+            style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
+          >
+            <Headphones size={18} />
+            Help & Support
+          </button>
         </div>
         <div style={{ marginTop: 'auto', padding: '16px 0' }}>
           <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '12px' }}>
@@ -244,7 +254,7 @@ export default function CollegePortal({ user }) {
       </aside>
 
       {/* Main Content Area */}
-      <main className="dashboard-main">
+      <main className={`dashboard-main ${(activeTab === 'profile' || activeTab === 'support') ? 'is-flush' : ''}`}>
         
         {/* TAB 1: OVERVIEW DASHBOARD */}
         {activeTab === 'dashboard' && (
@@ -755,6 +765,10 @@ export default function CollegePortal({ user }) {
         {/* TAB 4: PROFILE */}
         {activeTab === 'profile' && (
           <ProfilePage user={user} />
+        )}
+
+        {activeTab === 'support' && (
+          <HelpSupport />
         )}
 
       </main>

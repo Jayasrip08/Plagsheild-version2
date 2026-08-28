@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import api, { logout } from './api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Download, FileText, Upload, CheckCircle2, X } from 'lucide-react';
+import SubmissionRecord, { paymentOf, paymentStatusLabel } from './SubmissionRecord';
+import SupportInbox from './SupportInbox';
 
 export default function AdminPortal({ user }) {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -36,6 +38,9 @@ export default function AdminPortal({ user }) {
   const [updatingPricing, setUpdatingPricing] = useState(false);
   const [historyOrders, setHistoryOrders] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [supportTickets, setSupportTickets] = useState([]);
+  const [loadingSupport, setLoadingSupport] = useState(false);
+  const [supportOpenCount, setSupportOpenCount] = useState(0);
 
   useEffect(() => {
     fetchStats();
@@ -43,6 +48,7 @@ export default function AdminPortal({ user }) {
     fetchColleges();
     fetchUsers();
     fetchPricing();
+    fetchSupportInbox();
   }, []);
 
   useEffect(() => {
@@ -128,6 +134,30 @@ export default function AdminPortal({ user }) {
   const handleHistorySearchSubmit = (e) => {
     e.preventDefault();
     fetchHistory(historySearch.trim());
+  };
+
+  const fetchSupportInbox = async () => {
+    setLoadingSupport(true);
+    try {
+      const res = await api.get('support/inbox/');
+      const list = Array.isArray(res.data) ? res.data : (res.data?.results || []);
+      setSupportTickets(list);
+      setSupportOpenCount(list.filter((item) => item.status !== 'resolved').length);
+    } catch (e) {
+      console.error('Failed to load support inbox', e);
+    } finally {
+      setLoadingSupport(false);
+    }
+  };
+
+  const updateSupportStatus = async (ticketId, nextStatus) => {
+    try {
+      await api.patch(`support/tickets/${ticketId}/`, { status: nextStatus });
+      fetchSupportInbox();
+    } catch (e) {
+      console.error('Failed to update support request', e);
+      alert('Unable to update this request.');
+    }
   };
 
   const handleStartProcessing = async (orderId) => {
@@ -308,6 +338,14 @@ export default function AdminPortal({ user }) {
             </svg>
             <span>Pricing Configuration</span>
           </button>
+          <button className={`nav-link ${activeTab === 'support' ? 'active' : ''}`} onClick={() => { setActiveTab('support'); fetchSupportInbox(); }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
+              <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
+            </svg>
+            <span>Help & Support</span>
+            <span className="nav-badge">{supportOpenCount || supportTickets.filter((t) => t.status !== 'resolved').length}</span>
+          </button>
         </div>
         <div style={{ marginTop: 'auto', padding: '16px 0' }}>
           <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '12px' }}>
@@ -463,16 +501,18 @@ export default function AdminPortal({ user }) {
                     <tr>
                       <th>Queue priority</th>
                       <th>Order ID</th>
-                      <th>Account</th>
-                      <th>Filename</th>
-                      <th>Words</th>
+                      <th>Manuscript</th>
+                      <th>Author</th>
+                      <th>Payment</th>
                       <th>Status</th>
                       <th>Document</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {queue.map(order => (
+                    {queue.map(order => {
+                      const pay = paymentOf(order);
+                      return (
                       <tr 
                         key={order.id}
                         style={{
@@ -480,22 +520,31 @@ export default function AdminPortal({ user }) {
                         }}
                       >
                         <td>
-                          {order.is_express ? (
-                            <span style={{ fontSize: '11px', padding: '4px 10px', background: '#fee2e2', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: '4px', fontWeight: '700', whiteSpace: 'nowrap', display: 'inline-block' }}>
-                              ⚡ EXPRESS PRIORITY
+                          {order.package_tier === 'complete' || order.has_editing_suggestions ? (
+                            <span style={{ fontSize: '11px', padding: '4px 10px', background: '#eff6ff', color: '#1e3a8a', border: '1px solid #93c5fd', borderRadius: '4px', fontWeight: '700', whiteSpace: 'nowrap', display: 'inline-block' }}>
+                              COMPLETE
+                            </span>
+                          ) : order.package_tier === 'improve' || order.is_express ? (
+                            <span style={{ fontSize: '11px', padding: '4px 10px', background: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d', borderRadius: '4px', fontWeight: '700', whiteSpace: 'nowrap', display: 'inline-block' }}>
+                              IMPROVE
                             </span>
                           ) : (
-                            <span style={{ color: 'var(--text-muted)', fontSize: '13px', fontWeight: '500' }}>Standard</span>
+                            <span style={{ color: 'var(--text-muted)', fontSize: '13px', fontWeight: '500' }}>Check</span>
                           )}
                         </td>
                         <td>#{order.id}</td>
-                        <td>
-                          <strong>{order.user_details?.username}</strong>
-                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                            {order.user_details?.email || 'Direct Account'}
-                          </div>
+                        <td className="cell-stack">
+                          <strong>{order.paper_title || order.document?.split('/').pop()}</strong>
+                          <span>{order.user_details?.username} · {order.user_details?.email}</span>
                         </td>
-                        <td>{order.document.split('/').pop()}</td>
+                        <td className="cell-stack">
+                          <strong>{order.author_name || '—'}</strong>
+                          <span>{order.author_email || order.author_institution || ''}</span>
+                        </td>
+                        <td className="cell-stack">
+                          <strong>{paymentStatusLabel(order)}</strong>
+                          <span className="mono-id">{pay?.razorpay_payment_id || pay?.razorpay_order_id || '—'}</span>
+                        </td>
                         <td>
                           <span className={`badge badge-${order.status.toLowerCase().replace(' ', '-')}`}>
                             {order.status}
@@ -536,7 +585,8 @@ export default function AdminPortal({ user }) {
                           </div>
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -587,83 +637,61 @@ export default function AdminPortal({ user }) {
                   <thead>
                     <tr>
                       <th>Order ID</th>
-                      <th>User</th>
-                      <th>Document</th>
-                      <th>Type</th>
-                      <th>Price</th>
+                      <th>Manuscript</th>
+                      <th>Author</th>
+                      <th>Razorpay payment ID</th>
+                      <th>Transaction ID</th>
+                      <th>Payment</th>
+                      <th>Amount</th>
                       <th>Status</th>
-                      <th>Created</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {historyOrders.map(order => (
+                    {historyOrders.map(order => {
+                      const pay = paymentOf(order);
+                      return (
                       <tr
                         key={order.id}
-                        className={`table-row-clickable ${selectedHistoryOrder?.id === order.id ? 'selected' : ''}`}
+                        className={`table-row-clickable ${selectedHistoryOrder?.id === order.id ? 'selected is-selected' : ''}`}
                         onClick={() => setSelectedHistoryOrder(order)}
                       >
                         <td>#{order.id}</td>
-                        <td>
-                          <strong>{order.user_details?.username || order.user}</strong>
-                          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                            {order.user_details?.email || 'No email'}
-                          </div>
+                        <td className="cell-stack">
+                          <strong>{order.paper_title || order.document?.split('/').pop() || 'N/A'}</strong>
+                          <span>{order.user_details?.username || order.user} · {order.package_label || 'Check'}</span>
                         </td>
-                        <td>{order.document?.split('/').pop() || 'N/A'}</td>
-                        <td>Online Payment</td>
+                        <td className="cell-stack">
+                          <strong>{order.author_name || '—'}</strong>
+                          <span>{order.author_email || ''}</span>
+                        </td>
+                        <td className="mono-id">{pay?.razorpay_payment_id || '—'}</td>
+                        <td className="mono-id">{pay?.transaction_id || '—'}</td>
+                        <td>{paymentStatusLabel(order)}</td>
                         <td>₹{parseFloat(order.price || 0).toFixed(2)}</td>
                         <td>
                           <span className={`badge badge-${order.status.toLowerCase().replace(' ', '-')}`}>
                             {order.status}
                           </span>
                         </td>
-                        <td>{new Date(order.created_at).toLocaleDateString()}</td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
             )}
             {selectedHistoryOrder && (
-              <div className="glass-card history-order-detail">
-                <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px', alignItems: 'center' }}>
+              <div className="record-card">
+                <div className="record-card-head">
                   <div>
-                    <h3 style={{ marginBottom: '10px' }}>Selected Order #{selectedHistoryOrder.id}</h3>
-                    <div style={{ color: 'var(--text-muted)', marginBottom: '14px' }}>
-                      Click another row anytime to preview a different order.
-                    </div>
+                    <h3>Order #{selectedHistoryOrder.id}</h3>
+                    <p>Full manuscript, author, and Razorpay transaction record.</p>
                   </div>
-                  <button className="btn btn-secondary" style={{ height: 'fit-content' }} onClick={() => setSelectedHistoryOrder(null)}>
+                  <button className="btn btn-secondary" onClick={() => setSelectedHistoryOrder(null)}>
                     Clear Selection
                   </button>
                 </div>
-                <div className="detail-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px', marginTop: '16px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
-                  <div className="detail-item">
-                    <div className="detail-label" style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Order ID</div>
-                    <div style={{ fontSize: '15px', fontWeight: 'bold', color: 'var(--primary)' }}>#{selectedHistoryOrder.id}</div>
-                  </div>
-                  <div className="detail-item">
-                    <div className="detail-label" style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>User</div>
-                    <div><strong>{selectedHistoryOrder.user_details?.username || selectedHistoryOrder.user}</strong></div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{selectedHistoryOrder.user_details?.email || 'No email'}</div>
-                  </div>
-                  <div className="detail-item">
-                    <div className="detail-label" style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mode</div>
-                    <div><strong>Online Payment</strong></div>
-                  </div>
-                  <div className="detail-item">
-                    <div className="detail-label" style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</div>
-                    <div>
-                      <span className={`badge badge-${selectedHistoryOrder.status.toLowerCase().replace(' ', '-')}`}>
-                        {selectedHistoryOrder.status}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="detail-item">
-                    <div className="detail-label" style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Price</div>
-                    <div style={{ color: 'var(--success)', fontWeight: 'bold' }}>₹{parseFloat(selectedHistoryOrder.price || 0).toFixed(2)}</div>
-                  </div>
-                </div>
+                <SubmissionRecord order={selectedHistoryOrder} variant="admin" />
               </div>
             )}
           </div>
@@ -938,11 +966,11 @@ export default function AdminPortal({ user }) {
                     <tbody>
                       <tr>
                         <td>
-                          <strong>Similarity Check Fee</strong>
-                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Base Package Fee</div>
+                          <strong>Check — Similarity Check</strong>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>GST-inclusive customer price</div>
                         </td>
                         <td style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
-                          Standard fee for Similarity Check package (₹99).
+                          Customer pays ₹99 (taxable ₹83.90 + GST 18% ₹15.10).
                         </td>
                         <td>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -965,11 +993,11 @@ export default function AdminPortal({ user }) {
 
                       <tr>
                         <td>
-                          <strong>Similarity Reduction Fee</strong>
-                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Reduction Addon</div>
+                          <strong>Improve — Similarity Improvement</strong>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>GST-inclusive customer price</div>
                         </td>
                         <td style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
-                          Surcharge for Similarity Reduction package (₹199).
+                          Customer pays ₹299 (taxable ₹253.39 + GST 18% ₹45.61).
                         </td>
                         <td>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -992,11 +1020,11 @@ export default function AdminPortal({ user }) {
 
                       <tr>
                         <td>
-                          <strong>Complete Package Fee</strong>
-                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Full Package Addon</div>
+                          <strong>Complete — Research Paper Package</strong>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>GST-inclusive customer price</div>
                         </td>
                         <td style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
-                          Fee for Complete Package including editing & phrasing suggestions (₹299).
+                          Customer pays ₹549 (taxable ₹465.25 + GST 18% ₹83.75).
                         </td>
                         <td>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -1023,6 +1051,10 @@ export default function AdminPortal({ user }) {
             </form>
 
           </div>
+        )}
+
+        {activeTab === 'support' && (
+          <SupportInbox onCountChange={setSupportOpenCount} />
         )}
 
       </main>

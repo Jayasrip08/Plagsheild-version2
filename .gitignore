@@ -21,6 +21,11 @@ frontend/dist/
 frontend/build/
 .eslintcache
 
+# Secrets (Razorpay keys, etc.)
+.env
+frontend/.env
+frontend/.env.local
+
 # OS/IDE Files
 .DS_Store
 .idea/

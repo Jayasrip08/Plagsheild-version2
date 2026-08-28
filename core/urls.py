@@ -17,7 +17,7 @@ urlpatterns = [
     
     # API Root & Health Check
     path('', lambda request: JsonResponse({"status": "Innoresearx API Active", "version": "1.0"})),
-    path('api/', lambda request: JsonResponse({"status": "API Root Active", "endpoints": ["accounts", "colleges", "orders", "payments", "analytics"]})),
+    path('api/', lambda request: JsonResponse({"status": "API Root Active", "endpoints": ["accounts", "colleges", "orders", "payments", "analytics", "support"]})),
     
     # App routers
     path('api/accounts/', include('accounts.urls')),
@@ -25,6 +25,7 @@ urlpatterns = [
     path('api/orders/', include('orders.urls')),
     path('api/payments/', include('payments.urls')),
     path('api/analytics/', include('analytics_app.urls')),
+    path('api/support/', include('notifications.urls')),
 ]
 
 if settings.DEBUG:

@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import razorpay
 from django.conf import settings
 from django.utils import timezone
@@ -7,6 +9,11 @@ from rest_framework.response import Response
 
 from orders.models import Order
 from .models import Payment
+from .utils import apply_razorpay_payload
+
+
+def _amount_in_paise(price) -> int:
+    return int((Decimal(price) * Decimal('100')).quantize(Decimal('1')))
 
 class CreateRazorpayOrderView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -22,7 +29,7 @@ class CreateRazorpayOrderView(APIView):
         except Order.DoesNotExist:
             return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        amount_in_paise = int(order.price * 100)
+        amount_in_paise = _amount_in_paise(order.price)
 
         # Fallback to simulation mode if Razorpay is not configured
         if not settings.RAZORPAY_KEY_ID or not settings.RAZORPAY_KEY_SECRET:
@@ -55,7 +62,14 @@ class CreateRazorpayOrderView(APIView):
             razorpay_order = client.order.create({
                 "amount": amount_in_paise,
                 "currency": "INR",
-                "receipt": f"receipt_order_{order.id}"
+                "receipt": f"receipt_order_{order.id}",
+                "notes": {
+                    "platform_order_id": str(order.id),
+                    "paper_title": (order.paper_title or '')[:100],
+                    "author_name": (order.author_name or '')[:80],
+                    "author_email": (order.author_email or '')[:80],
+                    "package": order.package_tier or 'check',
+                },
             })
 
             payment, created = Payment.objects.get_or_create(
@@ -94,8 +108,10 @@ class VerifyPaymentView(APIView):
             return Response({"error": "Missing signature verification details"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            payment = Payment.objects.get(razorpay_order_id=razorpay_order_id)
+            payment = Payment.objects.select_related('order').get(razorpay_order_id=razorpay_order_id)
             order = payment.order
+            if order.user_id != request.user.id:
+                raise Payment.DoesNotExist
         except Payment.DoesNotExist:
             return Response({"error": "Payment records for this order ID do not exist"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -103,7 +119,10 @@ class VerifyPaymentView(APIView):
         if razorpay_order_id.startswith('mock_') or not settings.RAZORPAY_KEY_ID:
             payment.razorpay_payment_id = payment_id
             payment.razorpay_signature = signature or "mocked_signature"
+            payment.transaction_id = payment_id
+            payment.method = 'mock'
             payment.status = 'Paid'
+            payment.paid_at = timezone.now()
             payment.save()
 
             order.status = 'Submitted'
@@ -128,6 +147,12 @@ class VerifyPaymentView(APIView):
             payment.razorpay_payment_id = payment_id
             payment.razorpay_signature = signature
             payment.status = 'Paid'
+            payment.paid_at = timezone.now()
+            try:
+                captured = client.payment.fetch(payment_id)
+                apply_razorpay_payload(payment, captured)
+            except Exception:
+                payment.transaction_id = payment.transaction_id or payment_id
             payment.save()
 
             order.status = 'Submitted'

@@ -32,18 +32,18 @@ def seed():
     # 2. Create or Update Super Admin
     admin_user = User.objects.filter(role='super_admin').exclude(username='demo_admin').first()
     if admin_user:
-        admin_user.email = 'innoliftventures@gmail.com'
-        admin_user.set_password('Admin@innolift2026!')
+        admin_user.email = 'admin@innoresearx.com'
+        admin_user.set_password('Demo@123')
         admin_user.save()
-        print("Updated Super Admin user 'innoliftventures@gmail.com' (password: Admin@innolift2026!).")
+        print("Updated Super Admin user 'admin@innoresearx.com' (password: Demo@123).")
     else:
         User.objects.create_superuser(
             username='admin',
-            email='innoliftventures@gmail.com',
-            password='Admin@innolift2026!',
+            email='admin@innoresearx.com',
+            password='Demo@123',
             role='super_admin'
         )
-        print("Created Super Admin user 'innoliftventures@gmail.com' (password: Admin@innolift2026!).")
+        print("Created Super Admin user 'admin@innoresearx.com' (password: Demo@123).")
 
     # 2b. Demo Super Admin for the admin panel
     demo_admin, demo_created = User.objects.update_or_create(

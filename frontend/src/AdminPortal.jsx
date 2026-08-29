@@ -1,7 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import api, { logout } from './api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Download, FileText, Upload, CheckCircle2, X } from 'lucide-react';
+import {
+  Download,
+  FileText,
+  Upload,
+  CheckCircle2,
+  X,
+  PanelLeftClose,
+  PanelLeftOpen,
+  LayoutDashboard,
+  Clock,
+  History,
+  Users,
+  DollarSign,
+  Headphones,
+  ShieldCheck,
+  LogOut
+} from 'lucide-react';
 import SubmissionRecord, { paymentOf, paymentStatusLabel } from './SubmissionRecord';
 import SupportInbox from './SupportInbox';
 
@@ -9,6 +25,21 @@ export default function AdminPortal({ user }) {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [stats, setStats] = useState(null);
   const [loadingStats, setLoadingStats] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    try {
+      return window.localStorage.getItem('innoresearx-admin-sidebar-open') !== 'false';
+    } catch {
+      return true;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('innoresearx-admin-sidebar-open', String(sidebarOpen));
+    } catch {
+      /* ignore */
+    }
+  }, [sidebarOpen]);
 
   // Pending queue
   const [queue, setQueue] = useState([]);
@@ -284,81 +315,84 @@ export default function AdminPortal({ user }) {
   };
 
   return (
-    <div className="dashboard-layout">
+    <div className={`dashboard-layout has-app-sidebar ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
       {/* Sidebar Navigation */}
-      <aside className="sidebar">
-        <div className="logo" style={{ background: 'linear-gradient(135deg, var(--text-main) 0%, var(--primary) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-          </svg>
-          Innoresearx Super Admin
-        </div>
-        <div className="sidebar-nav">
-          <button className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="3" width="7" height="9"/>
-              <rect x="14" y="3" width="7" height="5"/>
-              <rect x="14" y="12" width="7" height="9"/>
-              <rect x="3" y="16" width="7" height="5"/>
-            </svg>
-            <span>BI Dashboard</span>
-          </button>
-          <button className={`nav-link ${activeTab === 'queue' ? 'active' : ''}`} onClick={() => { setActiveTab('queue'); fetchQueue(); }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10"/>
-              <polyline points="12 6 12 12 16 14"/>
-            </svg>
-            <span>Pending Queue</span>
-            <span className="nav-badge">{queue.length}</span>
-          </button>
-          <button className={`nav-link ${activeTab === 'history' ? 'active' : ''}`} onClick={() => { setActiveTab('history'); fetchHistory(); }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-              <line x1="16" y1="13" x2="8" y2="13"/>
-              <line x1="16" y1="17" x2="8" y2="17"/>
-              <polyline points="10 9 9 9 8 9"/>
-            </svg>
-            <span>Order History</span>
-          </button>
-
-          <button className={`nav-link ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-            <span>User Management</span>
-          </button>
-          <button className={`nav-link ${activeTab === 'pricing' ? 'active' : ''}`} onClick={() => setActiveTab('pricing')}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="12" y1="1" x2="12" y2="23"/>
-              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-            </svg>
-            <span>Pricing Configuration</span>
-          </button>
-          <button className={`nav-link ${activeTab === 'support' ? 'active' : ''}`} onClick={() => { setActiveTab('support'); fetchSupportInbox(); }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
-              <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
-            </svg>
-            <span>Help & Support</span>
-            <span className="nav-badge">{supportOpenCount || supportTickets.filter((t) => t.status !== 'resolved').length}</span>
-          </button>
-        </div>
-        <div style={{ marginTop: 'auto', padding: '16px 0' }}>
-          <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '12px' }}>
-            System Console:<br/>
-            <strong style={{ color: 'var(--text-main)' }}>Super Admin</strong>
+      <aside className={`sidebar app-sidebar ${sidebarOpen ? '' : 'is-collapsed'}`}>
+        <div className="app-sidebar-top">
+          <div className="logo">
+            <span className="logo-mark">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+            </span>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span className="logo-text">Innoresearx</span>
+              <span style={{ fontSize: '10px', color: '#c5a572', letterSpacing: '0.08em', fontWeight: '700', textTransform: 'uppercase' }}>Super Admin</span>
+            </div>
           </div>
-          <button className="btn btn-secondary" style={{ width: '100%' }} onClick={logout}>
-            Logout
+          <button
+            type="button"
+            className="sidebar-toggle"
+            onClick={() => setSidebarOpen((open) => !open)}
+            aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+            title={sidebarOpen ? 'Collapse' : 'Expand'}
+          >
+            {sidebarOpen ? <PanelLeftClose size={18} strokeWidth={1.75} /> : <PanelLeftOpen size={18} strokeWidth={1.75} />}
+          </button>
+        </div>
+
+        <div className="sidebar-nav">
+          <button className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')} title="BI Dashboard">
+            <span className="nav-ico"><LayoutDashboard size={20} strokeWidth={1.75} /></span>
+            <span className="nav-label">BI Dashboard</span>
+          </button>
+          <button className={`nav-link ${activeTab === 'queue' ? 'active' : ''}`} onClick={() => { setActiveTab('queue'); fetchQueue(); }} title="Pending Queue">
+            <span className="nav-ico"><Clock size={20} strokeWidth={1.75} /></span>
+            <span className="nav-label">Pending Queue</span>
+            {queue.length > 0 && <span className="nav-badge">{queue.length}</span>}
+          </button>
+          <button className={`nav-link ${activeTab === 'history' ? 'active' : ''}`} onClick={() => { setActiveTab('history'); fetchHistory(); }} title="Order History">
+            <span className="nav-ico"><History size={20} strokeWidth={1.75} /></span>
+            <span className="nav-label">Order History</span>
+          </button>
+          <button className={`nav-link ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')} title="User Management">
+            <span className="nav-ico"><Users size={20} strokeWidth={1.75} /></span>
+            <span className="nav-label">User Management</span>
+          </button>
+          <button className={`nav-link ${activeTab === 'pricing' ? 'active' : ''}`} onClick={() => setActiveTab('pricing')} title="Pricing Configuration">
+            <span className="nav-ico"><DollarSign size={20} strokeWidth={1.75} /></span>
+            <span className="nav-label">Pricing Configuration</span>
+          </button>
+          <button className={`nav-link ${activeTab === 'support' ? 'active' : ''}`} onClick={() => { setActiveTab('support'); fetchSupportInbox(); }} title="Help & Support">
+            <span className="nav-ico"><Headphones size={20} strokeWidth={1.75} /></span>
+            <span className="nav-label">Help & Support</span>
+            {(supportOpenCount || supportTickets.filter((t) => t.status !== 'resolved').length) > 0 && (
+              <span className="nav-badge">{supportOpenCount || supportTickets.filter((t) => t.status !== 'resolved').length}</span>
+            )}
+          </button>
+        </div>
+
+        <div className="sidebar-footer">
+          <div className="secure-card" title="Super Admin System Console">
+            <span className="nav-ico"><ShieldCheck size={20} strokeWidth={1.75} /></span>
+            <div className="secure-card-copy">
+              <strong>Admin Console</strong>
+              <p>Full system control & verification.</p>
+            </div>
+          </div>
+          <div className="sidebar-user" title={user?.username || 'Super Admin'}>
+            <span className="user-avatar">SA</span>
+            <span className="nav-label">{user?.username || 'Super Admin'}</span>
+          </div>
+          <button className="sidebar-logout" onClick={logout} title="Logout">
+            <span className="nav-ico"><LogOut size={20} strokeWidth={1.75} /></span>
+            <span className="nav-label">Logout</span>
           </button>
         </div>
       </aside>
 
       {/* Main Content Area */}
+      <div className="workspace">
       <main className="dashboard-main">
         
         {/* TAB 1: BI DASHBOARD */}
@@ -1058,6 +1092,7 @@ export default function AdminPortal({ user }) {
         )}
 
       </main>
+      </div>
 
       {/* COMPLETE ORDER DIALOG MODAL */}
       {selectedOrder && (

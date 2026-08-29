@@ -368,158 +368,225 @@ class OrderInvoiceView(APIView):
         from io import BytesIO
 
         try:
-            # Use BytesIO instead of HttpResponse for safer PDF generation
             pdf_buffer = BytesIO()
             doc = SimpleDocTemplate(pdf_buffer, pagesize=letter, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
             story = []
 
             styles = getSampleStyleSheet()
             
+            NAVY = colors.HexColor("#0c2340")
+            GOLD = colors.HexColor("#c5a572")
+            SLATE = colors.HexColor("#1e293b")
+            MUTED = colors.HexColor("#64748b")
+            LIGHT_BG = colors.HexColor("#f8fafc")
+            BORDER_COLOR = colors.HexColor("#e2e8f0")
+            GOLD_BG = colors.HexColor("#fefce8")
+
             # Custom Styles
-            brand_style = ParagraphStyle(
-                'BrandStyle',
-                parent=styles['Heading1'],
+            brand_title = ParagraphStyle(
+                'InvoiceBrandTitle',
+                parent=styles['Normal'],
+                fontName="Helvetica-Bold",
                 fontSize=22,
-                textColor=colors.HexColor("#4F46E5"),
-                spaceAfter=4,
-                fontName="Helvetica-Bold"
+                textColor=NAVY,
+                leading=26
             )
-            title_style = ParagraphStyle(
-                'TitleStyle',
-                parent=styles['Heading2'],
-                fontSize=16,
-                textColor=colors.HexColor("#1F2937"),
-                spaceAfter=15,
-                alignment=2 # Right aligned
+            invoice_title = ParagraphStyle(
+                'InvoiceDocTitle',
+                parent=styles['Normal'],
+                fontName="Helvetica-Bold",
+                fontSize=18,
+                textColor=NAVY,
+                alignment=2,
+                leading=22
             )
             body_style = ParagraphStyle(
-                'BodyStyle',
+                'InvoiceBody',
                 parent=styles['Normal'],
-                fontSize=9.5,
-                textColor=colors.HexColor("#374151"),
-                leading=14
+                fontName="Helvetica",
+                fontSize=9,
+                textColor=SLATE,
+                leading=13
+            )
+            body_bold = ParagraphStyle(
+                'InvoiceBodyBold',
+                parent=styles['Normal'],
+                fontName="Helvetica-Bold",
+                fontSize=9,
+                textColor=SLATE,
+                leading=13
             )
             table_header_style = ParagraphStyle(
-                'TableHeader',
+                'InvoiceTableHeader',
                 parent=styles['Normal'],
-                fontSize=10,
-                textColor=colors.HexColor("#FFFFFF"),
-                fontName="Helvetica-Bold"
+                fontName="Helvetica-Bold",
+                fontSize=9.5,
+                textColor=colors.white,
+                leading=12
             )
 
-            # Invoice Header Block
+            # Metadata preparation
             doc_name = os.path.basename(order.document.name) if order.document else "Document"
             user_full_name = order.user.get_full_name() or order.user.username
             user_phone = getattr(order.user, 'phone', 'N/A') or 'N/A'
+            payment_ref = getattr(order, 'payment', None) and (order.payment.razorpay_payment_id or order.payment.transaction_id) or ('B2B Credit Allocation' if order.is_b2b else 'Direct Transaction')
 
-            header_data = [
+            # 1. Header Row
+            header_table_data = [
                 [
-                    Paragraph("<b>INNORESEARX</b><br/><font size=8.5 color='#6B7280'>Enterprise Document Verification Platform</font>", brand_style),
-                    Paragraph("TAX INVOICE<br/><font size=9 color='#6B7280'>Invoice #: INV-%06d</font>" % order.id, title_style)
+                    Paragraph("<b>INNORESEARX</b><br/><font color='#c5a572'><b>ACADEMIC INTEGRITY & VERIFICATION INTELLIGENCE</b></font>", brand_title),
+                    Paragraph("TAX INVOICE<br/><font size=9 color='#64748b'>Invoice No: <b>INV-%06d</b><br/>Date: <b>%s</b></font>" % (order.id, order.created_at.strftime('%d %b %Y')), invoice_title)
                 ]
             ]
-            header_table = Table(header_data, colWidths=[300, 240])
+            header_table = Table(header_table_data, colWidths=[310, 230])
             header_table.setStyle(TableStyle([
                 ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
                 ('LEFTPADDING', (0,0), (-1,-1), 0),
                 ('RIGHTPADDING', (0,0), (-1,-1), 0),
             ]))
             story.append(header_table)
-            story.append(Spacer(1, 15))
+            story.append(Spacer(1, 12))
 
-            # Metadata & Billing Information Grid
+            # 2. Divider Line (Navy accent line)
+            story.append(Table([['']], colWidths=[540], rowHeights=[2], style=TableStyle([('BACKGROUND', (0,0), (-1,-1), NAVY)])))
+            story.append(Spacer(1, 14))
+
+            # 3. Billing Info Cards (Billed To & Invoice Metadata)
             info_data = [
                 [
-                    Paragraph("<b>Billed To:</b><br/>"
-                              f"Client Name: <b>{user_full_name}</b><br/>"
-                              f"Email: {order.user.email}<br/>"
-                              f"Phone: {user_phone}<br/>"
-                              f"Department: {order.department or 'General'}", body_style),
-                    Paragraph("<b>Invoice Summary:</b><br/>"
-                              f"Invoice Date: <b>{order.created_at.strftime('%d %b %Y')}</b><br/>"
-                              f"Billing Type: <b>{'B2B Institutional Credit' if order.is_b2b else 'B2C Online Payment'}</b><br/>"
-                              f"Order Status: <b>{order.status}</b><br/>"
-                              f"Payment ID: {getattr(order, 'payment', None) and order.payment.razorpay_payment_id or 'B2B Credit Allocation'}", body_style)
+                    Paragraph(
+                        f"<font color='#0c2340'><b>BILLED TO</b></font><br/><br/>"
+                        f"Client Name: <b>{user_full_name}</b><br/>"
+                        f"Email: {order.user.email}<br/>"
+                        f"Phone: {user_phone}<br/>"
+                        f"Department: {order.department or 'General'}",
+                        body_style
+                    ),
+                    Paragraph(
+                        f"<font color='#0c2340'><b>ISSUER & PAYMENT INFO</b></font><br/><br/>"
+                        f"Issued By: <b>Innoresearx Platform Services</b><br/>"
+                        f"Billing Model: <b>{'B2B Institutional Credit' if order.is_b2b else 'B2C Online Payment'}</b><br/>"
+                        f"Payment Ref: <b>{payment_ref}</b><br/>"
+                        f"Order Status: <b>{order.status}</b>",
+                        body_style
+                    )
                 ]
             ]
-            info_table = Table(info_data, colWidths=[270, 270])
+            info_table = Table(info_data, colWidths=[264, 264])
             info_table.setStyle(TableStyle([
                 ('VALIGN', (0,0), (-1,-1), 'TOP'),
-                ('BACKGROUND', (0,0), (0,0), colors.HexColor("#F9FAFB")),
-                ('BACKGROUND', (1,0), (1,0), colors.HexColor("#F3F4F6")),
-                ('PADDING', (0,0), (-1,-1), 10),
-                ('BOX', (0,0), (0,0), 0.5, colors.HexColor("#E5E7EB")),
-                ('BOX', (1,0), (1,0), 0.5, colors.HexColor("#E5E7EB")),
+                ('BACKGROUND', (0,0), (-1,-1), LIGHT_BG),
+                ('PADDING', (0,0), (-1,-1), 12),
+                ('BOX', (0,0), (0,0), 1, BORDER_COLOR),
+                ('BOX', (1,0), (1,0), 1, BORDER_COLOR),
             ]))
             story.append(info_table)
-            story.append(Spacer(1, 20))
+            story.append(Spacer(1, 14))
 
-            # Line Items Table — GST-inclusive customer price with 18% split
+            # 4. Manuscript Details Banner
+            paper_title_display = getattr(order, 'paper_title', '') or doc_name
+            paper_meta_data = [
+                [
+                    Paragraph(
+                        f"<font color='#0c2340'><b>VERIFICATION SUBJECT & MANUSCRIPT META</b></font><br/>"
+                        f"<font color='#64748b'>Title:</font> <b>{paper_title_display}</b> &nbsp;&nbsp;•&nbsp;&nbsp; "
+                        f"<font color='#64748b'>File:</font> <b>{doc_name}</b> &nbsp;&nbsp;•&nbsp;&nbsp; "
+                        f"<font color='#64748b'>Word Count:</font> <b>{order.word_count or 'N/A'} words</b>",
+                        body_style
+                    )
+                ]
+            ]
+            paper_meta_table = Table(paper_meta_data, colWidths=[540])
+            paper_meta_table.setStyle(TableStyle([
+                ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+                ('BACKGROUND', (0,0), (-1,-1), GOLD_BG),
+                ('PADDING', (0,0), (-1,-1), 10),
+                ('BOX', (0,0), (-1,-1), 1, colors.HexColor("#fef08a")),
+            ]))
+            story.append(paper_meta_table)
+            story.append(Spacer(1, 16))
+
+            # 5. Line Items Table with GST Breakdown
             package = order.package_tier or ('complete' if order.has_editing_suggestions else 'improve' if order.is_express else 'check')
             package_name = PACKAGE_LABELS.get(package, 'Check — Similarity Check')
+
             if order.is_b2b:
                 table_data = [
-                    [Paragraph("Item / Service Description", table_header_style), Paragraph("Taxable Value", table_header_style), Paragraph("GST 18%", table_header_style), Paragraph("Amount (INR)", table_header_style)],
+                    [Paragraph("Service Description", table_header_style), Paragraph("Taxable Value", table_header_style), Paragraph("GST (18%)", table_header_style), Paragraph("Total Billed", table_header_style)],
                     [
-                        Paragraph(f"<b>{package_name}</b><br/><font size=8.5 color='#6B7280'>Document: {doc_name}</font>", body_style),
+                        Paragraph(f"<b>{package_name}</b><br/><font size=8 color='#64748b'>Institutional B2B Verification Check</font>", body_style),
                         Paragraph("—", body_style),
                         Paragraph("—", body_style),
-                        Paragraph("1 B2B Credit", body_style),
+                        Paragraph("<b>1 B2B Credit</b>", body_style),
                     ],
                     [
-                        Paragraph("<b>Total Amount Billed</b>", body_style),
+                        Paragraph("<b>Total Amount Billed</b>", body_bold),
                         Paragraph("", body_style),
                         Paragraph("", body_style),
-                        Paragraph("<b>1 Credit</b>", body_style),
+                        Paragraph("<b>1 B2B Credit</b>", body_bold),
                     ],
                 ]
             else:
                 taxable, gst, gross = gst_breakdown(order.price)
                 table_data = [
-                    [Paragraph("Item / Service Description", table_header_style), Paragraph("Taxable Value", table_header_style), Paragraph("GST 18%", table_header_style), Paragraph("Customer Pays", table_header_style)],
+                    [Paragraph("Service Description", table_header_style), Paragraph("Taxable Value", table_header_style), Paragraph("GST (18%)", table_header_style), Paragraph("Total Paid (INR)", table_header_style)],
                     [
-                        Paragraph(f"<b>{package_name}</b><br/><font size=8.5 color='#6B7280'>GST included · Document: {doc_name}</font>", body_style),
+                        Paragraph(f"<b>{package_name}</b><br/><font size=8 color='#64748b'>Includes GST & Report Generation</font>", body_style),
                         Paragraph("₹ %.2f" % taxable, body_style),
                         Paragraph("₹ %.2f" % gst, body_style),
                         Paragraph("₹ %.2f" % gross, body_style),
                     ],
                     [
-                        Paragraph("<b>Total (GST included)</b>", body_style),
-                        Paragraph("₹ %.2f" % taxable, body_style),
-                        Paragraph("₹ %.2f" % gst, body_style),
-                        Paragraph("<b>₹ %.2f</b>" % gross, body_style),
+                        Paragraph("<b>Total Amount Paid (GST Included)</b>", body_bold),
+                        Paragraph("₹ %.2f" % taxable, body_bold),
+                        Paragraph("₹ %.2f" % gst, body_bold),
+                        Paragraph("<b>₹ %.2f</b>" % gross, body_bold),
                     ],
                 ]
 
-            summary_table = Table(table_data, colWidths=[220, 110, 100, 110])
+            summary_table = Table(table_data, colWidths=[240, 100, 100, 100])
             summary_table.setStyle(TableStyle([
-                ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#4F46E5")),
-                ('ALIGN', (1,1), (-1,-1), 'LEFT'),
+                ('BACKGROUND', (0,0), (-1,0), NAVY),
                 ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
                 ('BOTTOMPADDING', (0,0), (-1,-1), 8),
                 ('TOPPADDING', (0,0), (-1,-1), 8),
-                ('GRID', (0,0), (-1,-2), 0.5, colors.HexColor("#E5E7EB")),
-                ('LINEABOVE', (0,-1), (-1,-1), 1.5, colors.HexColor("#4F46E5")),
-                ('BACKGROUND', (0,-1), (-1,-1), colors.HexColor("#EEF2FF")),
+                ('GRID', (0,0), (-1,-2), 0.5, BORDER_COLOR),
+                ('LINEABOVE', (0,-1), (-1,-1), 1.5, NAVY),
+                ('BACKGROUND', (0,-1), (-1,-1), LIGHT_BG),
             ]))
             story.append(summary_table)
-            story.append(Spacer(1, 25))
+            story.append(Spacer(1, 24))
 
-            # Footer / Terms
-            footer_text = Paragraph(
-                "<font color='#6B7280' size=8.5><b>Terms & Support:</b> This is an official computer-generated receipt/invoice issued by Innoresearx. For support or queries regarding this document verification, please contact <u>support@innoresearx.com</u>.</font>",
-                body_style
-            )
-            story.append(footer_text)
+            # 6. Computer Generated Seal & Footer
+            footer_data = [
+                [
+                    Paragraph(
+                        "<font color='#64748b' size=8><b>Official Tax Receipt & Verification Audit:</b><br/>"
+                        "This is an official computer-generated digital tax invoice issued by Innoresearx. "
+                        "No physical signature is required. For support, contact <u>support@innoresearx.com</u>.</font>",
+                        body_style
+                    ),
+                    Paragraph(
+                        "<font color='#0c2340' size=8.5><b>INNORESEARX</b></font><br/>"
+                        "<font color='#c5a572' size=7.5><b>VERIFIED AUDIT RECEIPT</b></font>",
+                        ParagraphStyle('SealText', parent=styles['Normal'], alignment=1)
+                    )
+                ]
+            ]
+            footer_table = Table(footer_data, colWidths=[410, 130])
+            footer_table.setStyle(TableStyle([
+                ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+                ('BACKGROUND', (1,0), (1,0), LIGHT_BG),
+                ('BOX', (1,0), (1,0), 1, GOLD),
+                ('PADDING', (1,0), (1,0), 8),
+            ]))
+            story.append(footer_table)
 
             doc.build(story)
-            
-            # Get PDF bytes
             pdf_buffer.seek(0)
             pdf_bytes = pdf_buffer.getvalue()
             pdf_buffer.close()
 
-            # Return PDF response
             response = HttpResponse(pdf_bytes, content_type='application/pdf')
             response['Content-Disposition'] = f'attachment; filename="Invoice_{order.id}.pdf"'
             return response

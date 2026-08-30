@@ -16,7 +16,7 @@ urlpatterns = [
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     
     # API Root & Health Check
-    path('', lambda request: JsonResponse({"status": "Innoresearx API Active", "version": "1.0"})),
+    path('', lambda request: JsonResponse({"status": "NovelCheckr API Active", "version": "1.0"})),
     path('api/', lambda request: JsonResponse({"status": "API Root Active", "endpoints": ["accounts", "colleges", "orders", "payments", "analytics", "support"]})),
     
     # App routers

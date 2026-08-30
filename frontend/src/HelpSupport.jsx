@@ -14,7 +14,7 @@ export const SUPPORT_CATEGORIES = [
   {
     id: 'general',
     title: 'General Query',
-    blurb: 'Questions about submitting, timelines, and how InnoresearX works.',
+    blurb: 'Questions about submitting, timelines, and how NovelCheckr works.',
     icon: MessageCircle,
     examples: [
       'How do I submit a paper?',
@@ -160,7 +160,7 @@ export default function HelpSupport({ orders = [] }) {
       });
       setMessage('');
       setOrderId('');
-      setSuccess('Your request has been sent. The InnoresearX desk will follow up.');
+      setSuccess('Your request has been sent. The NovelCheckr desk will follow up.');
       fetchTickets();
     } catch (err) {
       const data = err.response?.data;
@@ -182,7 +182,7 @@ export default function HelpSupport({ orders = [] }) {
               <Headphones size={22} strokeWidth={1.8} />
             </span>
             <div>
-              <p className="support-kicker">InnoresearX desk</p>
+              <p className="support-kicker">NovelCheckr desk</p>
               <h2>Help &amp; Support</h2>
               <p>
                 Ask about submissions, payments, papers, or similarity reports. Choose a category so the right team can respond.
@@ -191,7 +191,7 @@ export default function HelpSupport({ orders = [] }) {
           </div>
           <div className="support-contact">
             <span>Direct line</span>
-            <strong>support@innoresearx.com</strong>
+            <strong>innoliftventures@gmail.com</strong>
           </div>
         </header>
 

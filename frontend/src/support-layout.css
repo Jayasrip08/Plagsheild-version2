@@ -38,7 +38,7 @@
   border-radius: 14px;
   display: grid;
   place-items: center;
-  background: #0c2340;
+  background: #0f172a;
   color: #f8f1e4;
   flex-shrink: 0;
 }
@@ -48,7 +48,7 @@
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #c5a572;
+  color: #1570ef;
   margin-bottom: 6px;
 }
 
@@ -57,7 +57,7 @@
   font-size: 28px;
   font-weight: 600;
   letter-spacing: -0.03em;
-  color: #0c2340;
+  color: #0f172a;
   margin-bottom: 6px;
 }
 
@@ -89,7 +89,7 @@
 
 .support-contact strong {
   font-size: 13px;
-  color: #0c2340;
+  color: #0f172a;
 }
 
 .support-cats {
@@ -112,14 +112,14 @@
 }
 
 .support-cat:hover {
-  border-color: #c5a572;
+  border-color: #1570ef;
   transform: translateY(-1px);
 }
 
 .support-cat.is-selected {
-  border-color: #0c2340;
+  border-color: #0f172a;
   background: #f7f4ee;
-  box-shadow: 0 8px 20px rgba(12, 35, 64, 0.08);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
 }
 
 .support-cat-icon {
@@ -128,20 +128,20 @@
   border-radius: 9px;
   display: grid;
   place-items: center;
-  background: #0c2340;
+  background: #0f172a;
   color: #f8f1e4;
   margin-bottom: 12px;
 }
 
 .support-cat.is-selected .support-cat-icon {
-  background: #c5a572;
-  color: #0c2340;
+  background: #1570ef;
+  color: #0f172a;
 }
 
 .support-cat h3 {
   font-size: 15px;
   font-weight: 650;
-  color: #0c2340;
+  color: #0f172a;
   margin-bottom: 6px;
 }
 
@@ -178,7 +178,7 @@
 .support-form-head h3 {
   font-size: 16px;
   font-weight: 650;
-  color: #0c2340;
+  color: #0f172a;
   margin-bottom: 4px;
 }
 
@@ -223,7 +223,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: #0c2340;
+  background: #0f172a;
   min-width: 168px;
   height: 42px;
 }
@@ -381,8 +381,8 @@
 }
 
 .support-inbox-filters button.is-active {
-  background: #0c2340;
-  border-color: #0c2340;
+  background: #0f172a;
+  border-color: #0f172a;
   color: #f8f1e4;
 }
 
@@ -402,7 +402,7 @@
 
 .support-inbox-detail h3 {
   font-size: 18px;
-  color: #0c2340;
+  color: #0f172a;
   margin: 4px 0 6px;
 }
 

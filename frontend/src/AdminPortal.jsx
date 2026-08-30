@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import SubmissionRecord, { paymentOf, paymentStatusLabel } from './SubmissionRecord';
 import SupportInbox from './SupportInbox';
+import logoImage from './images/nc.png';
 
 export default function AdminPortal({ user }) {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -27,7 +28,7 @@ export default function AdminPortal({ user }) {
   const [loadingStats, setLoadingStats] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     try {
-      return window.localStorage.getItem('innoresearx-admin-sidebar-open') !== 'false';
+      return window.localStorage.getItem('novelcheckr-admin-sidebar-open') !== 'false';
     } catch {
       return true;
     }
@@ -35,7 +36,7 @@ export default function AdminPortal({ user }) {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem('innoresearx-admin-sidebar-open', String(sidebarOpen));
+      window.localStorage.setItem('novelcheckr-admin-sidebar-open', String(sidebarOpen));
     } catch {
       /* ignore */
     }
@@ -321,13 +322,11 @@ export default function AdminPortal({ user }) {
         <div className="app-sidebar-top">
           <div className="logo">
             <span className="logo-mark">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              </svg>
+              <img src={logoImage} alt="NovelCheckr" />
             </span>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span className="logo-text">Innoresearx</span>
-              <span style={{ fontSize: '10px', color: '#c5a572', letterSpacing: '0.08em', fontWeight: '700', textTransform: 'uppercase' }}>Super Admin</span>
+              <span className="logo-text">NovelCheckr</span>
+              <span style={{ fontSize: '10px', color: '#1570ef', letterSpacing: '0.08em', fontWeight: '700', textTransform: 'uppercase' }}>Super Admin</span>
             </div>
           </div>
           <button
@@ -339,6 +338,14 @@ export default function AdminPortal({ user }) {
           >
             {sidebarOpen ? <PanelLeftClose size={18} strokeWidth={1.75} /> : <PanelLeftOpen size={18} strokeWidth={1.75} />}
           </button>
+        </div>
+
+        <div className="sidebar-profile" title={user?.username || 'Super Admin'}>
+          <span className="profile-avatar">SA</span>
+          <div className="profile-info">
+            <strong>{user?.username || 'Super Admin'}</strong>
+            <span>{user?.email || 'Super Admin Account'}</span>
+          </div>
         </div>
 
         <div className="sidebar-nav">
@@ -379,10 +386,6 @@ export default function AdminPortal({ user }) {
               <strong>Admin Console</strong>
               <p>Full system control & verification.</p>
             </div>
-          </div>
-          <div className="sidebar-user" title={user?.username || 'Super Admin'}>
-            <span className="user-avatar">SA</span>
-            <span className="nav-label">{user?.username || 'Super Admin'}</span>
           </div>
           <button className="sidebar-logout" onClick={logout} title="Logout">
             <span className="nav-ico"><LogOut size={20} strokeWidth={1.75} /></span>
@@ -555,7 +558,7 @@ export default function AdminPortal({ user }) {
                       >
                         <td>
                           {order.package_tier === 'complete' || order.has_editing_suggestions ? (
-                            <span style={{ fontSize: '11px', padding: '4px 10px', background: '#eff6ff', color: '#1e3a8a', border: '1px solid #93c5fd', borderRadius: '4px', fontWeight: '700', whiteSpace: 'nowrap', display: 'inline-block' }}>
+                            <span style={{ fontSize: '11px', padding: '4px 10px', background: '#eff6ff', color: '#1570ef', border: '1px solid #93c5fd', borderRadius: '4px', fontWeight: '700', whiteSpace: 'nowrap', display: 'inline-block' }}>
                               COMPLETE
                             </span>
                           ) : order.package_tier === 'improve' || order.is_express ? (

@@ -14,6 +14,7 @@ import api, { logout } from './api';
 import ProfilePage from './ProfilePage';
 import SubmitPaperForm from './SubmitPaperForm';
 import HelpSupport from './HelpSupport';
+import logoImage from './images/nc.png';
 import SubmissionRecord, { paymentOf, paymentStatusLabel } from './SubmissionRecord';
 
 function CheckIcon() {
@@ -77,7 +78,7 @@ export default function StudentPortal({ user, setUser }) {
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     try {
-      return window.localStorage.getItem('innoresearx-sidebar-open') !== 'false';
+      return window.localStorage.getItem('novelcheckr-sidebar-open') !== 'false';
     } catch {
       return true;
     }
@@ -102,7 +103,7 @@ export default function StudentPortal({ user, setUser }) {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem('innoresearx-sidebar-open', String(sidebarOpen));
+      window.localStorage.setItem('novelcheckr-sidebar-open', String(sidebarOpen));
     } catch {
       /* ignore */
     }
@@ -219,7 +220,7 @@ export default function StudentPortal({ user, setUser }) {
         key: payData.key || import.meta.env.VITE_RAZORPAY_KEY_ID,
         amount: payData.amount,
         currency: payData.currency || 'INR',
-        name: 'Innoresearx',
+        name: 'NovelCheckr',
         description: `${order.package_label || 'Similarity package'} - Order #${order.id}`,
         order_id: payData.id,
         handler: async (response) => {
@@ -236,7 +237,7 @@ export default function StudentPortal({ user, setUser }) {
           email: user.email,
           contact: user.phone || '',
         },
-        theme: { color: '#0c2340' },
+        theme: { color: '#0f172a' },
         modal: {
           ondismiss: () => {
             if (!checkoutCompleted) {
@@ -330,11 +331,9 @@ export default function StudentPortal({ user, setUser }) {
         <div className="app-sidebar-top">
           <div className="logo">
             <span className="logo-mark">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              </svg>
+              <img src={logoImage} alt="NovelCheckr" />
             </span>
-            <span className="logo-text">Innoresearx</span>
+            <span className="logo-text">NovelCheckr</span>
           </div>
           <button
             type="button"
@@ -345,6 +344,14 @@ export default function StudentPortal({ user, setUser }) {
           >
             {sidebarOpen ? <PanelLeftClose size={18} strokeWidth={1.75} /> : <PanelLeftOpen size={18} strokeWidth={1.75} />}
           </button>
+        </div>
+
+        <div className="sidebar-profile" title={user.email || user.username}>
+          <span className="profile-avatar">{(user.username || 'U').slice(0, 1).toUpperCase()}</span>
+          <div className="profile-info">
+            <strong>{user.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : user.username}</strong>
+            <span>{user.email || user.username}</span>
+          </div>
         </div>
 
         <button
@@ -384,10 +391,6 @@ export default function StudentPortal({ user, setUser }) {
               <strong>Your Data is Secure</strong>
               <p>Encrypted uploads and licensed analysis.</p>
             </div>
-          </div>
-          <div className="sidebar-user" title={user.username}>
-            <span className="user-avatar">{(user.username || 'U').slice(0, 1).toUpperCase()}</span>
-            <span className="nav-label">{user.username}</span>
           </div>
           <button className="sidebar-logout" onClick={logout} title="Logout">
             <span className="nav-ico"><LogOut size={20} strokeWidth={1.75} /></span>

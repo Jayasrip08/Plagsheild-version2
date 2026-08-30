@@ -30,7 +30,7 @@ def reset_and_seed():
     # 2. Super Admin
     User.objects.create_superuser(
         username='admin',
-        email='admin@innoresearx.com',
+        email='admin@novelcheckr.com',
         password='Demo@123',
         role='super_admin'
     )

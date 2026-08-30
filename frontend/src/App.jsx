@@ -1,11 +1,14 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
 import api, { getUserProfile, loginUser, registerUser, googleLoginUser } from './api'
 import StudentPortal from './StudentPortal'
 import AdminPortal from './AdminPortal'
 import LandingPage from './LandingPage'
+import logoImage from './images/nc.png'
+
+const AuthAnimation = lazy(() => import('./AuthAnimation'))
 
 const DEMO_ADMIN = {
-  email: 'admin@innoresearx.com',
+  email: 'admin@novelcheckr.com',
   password: 'Demo@123',
 };
 
@@ -411,7 +414,7 @@ function App() {
     return (
       <div className="loading-screen">
         <div className="spinner"></div>
-        <p>Loading Innoresearx Platform...</p>
+        <p>Loading NovelCheckr Platform...</p>
       </div>
     );
   }
@@ -445,18 +448,36 @@ function App() {
     <div className="auth-screen">
       <div className="auth-layout-wrapper">
         <div className="auth-hero-panel">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '22px', fontWeight: '800', cursor: 'pointer' }} onClick={() => setViewMode('landing')}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            </svg>
-            Innoresearx
+          <div className="auth-hero-bg">
+            <div className="auth-blob auth-blob-orange"></div>
+            <div className="auth-blob auth-blob-light"></div>
+            <div className="auth-grid-overlay"></div>
           </div>
-          <div className="auth-hero-content">
-            <h2>Academic Integrity & Verification Intelligence</h2>
-            <p>Institutional verification platform with automated similarity scoring, signed digital audit reports, and B2B credit allocation.</p>
-          </div>
-          <div style={{ fontSize: '13px', opacity: 0.8 }}>
-            © {new Date().getFullYear()} Innoresearx Platform. All rights reserved.
+
+          <div className="auth-hero-inner">
+            <div className="auth-hero-brand" style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '22px', fontWeight: '800', cursor: 'pointer' }} onClick={() => setViewMode('landing')}>
+              <img src={logoImage} alt="NovelCheckr" style={{ width: 28, height: 28 }} />
+              NovelCheckr
+            </div>
+
+            <div className="auth-hero-visual">
+              <Suspense fallback={<div className="auth-hero-lottie-placeholder" />}>
+                <AuthAnimation isLogin={isLogin} />
+              </Suspense>
+            </div>
+
+            <div className="auth-hero-content">
+              <h2>{isLogin ? 'Welcome Back' : 'Join NovelCheckr'}</h2>
+              <p>
+                {isLogin
+                  ? 'Sign in to check your manuscripts, track reports, and manage your academic integrity dashboard.'
+                  : 'Create your account to start verifying originality with Turnitin-grade similarity scoring and instant audit reports.'}
+              </p>
+            </div>
+
+            <div className="auth-hero-footer" style={{ fontSize: '13px', opacity: 0.8 }}>
+              © {new Date().getFullYear()} NovelCheckr Platform. All rights reserved.
+            </div>
           </div>
         </div>
 
@@ -488,7 +509,7 @@ function App() {
             </button>
 
             <div className="auth-intro">
-              <h1>Welcome to Innoresearx</h1>
+              <h1>Welcome to NovelCheckr</h1>
               <p className="auth-subtitle">
                 Sign in to your account or register for access.
               </p>

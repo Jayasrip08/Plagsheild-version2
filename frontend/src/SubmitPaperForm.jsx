@@ -90,18 +90,6 @@ const PACKAGE_DEFS = [
     ],
   },
   {
-    id: 'improve',
-    kicker: 'Improve',
-    name: 'Similarity Improvement',
-    features: [
-      'Everything in Check',
-      'Academic language improvement',
-      'Help addressing similarity',
-      'One revision',
-      'Final similarity report',
-    ],
-  },
-  {
     id: 'complete',
     kicker: 'Complete',
     name: 'Complete Research Package',
@@ -112,6 +100,18 @@ const PACKAGE_DEFS = [
       'Academic language check',
       'Formatting check',
       'Reference/citation check',
+      'One revision',
+      'Final similarity report',
+    ],
+  },
+  {
+    id: 'improve',
+    kicker: 'Improve',
+    name: 'Similarity Improvement',
+    features: [
+      'Everything in Check',
+      'Academic language improvement',
+      'Help addressing similarity',
       'One revision',
       'Final similarity report',
     ],

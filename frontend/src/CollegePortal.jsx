@@ -13,12 +13,12 @@ import {
   RotateCcw, 
   UserPlus, 
   FileSpreadsheet, 
-  CheckCircle2, 
-  Headphones,
-  School 
+  CheckCircle2,
+  Headphones
 } from 'lucide-react';
 import ProfilePage from './ProfilePage';
 import HelpSupport from './HelpSupport';
+import logoImage from './images/nc.png';
 
 export default function CollegePortal({ user }) {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -180,8 +180,8 @@ export default function CollegePortal({ user }) {
       {/* Sidebar Navigation */}
       <aside className="sidebar">
         <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <School size={24} style={{ color: 'var(--primary)' }} />
-          <span>Innoresearx College</span>
+          <img src={logoImage} alt="NovelCheckr" style={{ width: 24, height: 24 }} />
+          <span>NovelCheckr College</span>
         </div>
         <div className="sidebar-nav">
           <button 

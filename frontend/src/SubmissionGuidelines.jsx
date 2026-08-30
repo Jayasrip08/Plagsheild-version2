@@ -71,7 +71,7 @@ function SimilarityExplained() {
           A similarity score is not, by itself, a determination of plagiarism. Your conference, journal, or institution may have its own acceptable similarity requirements. Please check their guidelines.
         </p>
         <aside className="guide-callout">
-          InnoresearX does not treat any percentage band as “safe” or “plagiarism”. Thresholds vary across venues and should be applied by the responsible editor, reviewer, or institution.
+          NovelCheckr does not treat any percentage band as “safe” or “plagiarism”. Thresholds vary across venues and should be applied by the responsible editor, reviewer, or institution.
         </aside>
       </GuideSection>
 
@@ -126,7 +126,7 @@ function PaymentGuide() {
           <li>Report</li>
         </ol>
         <p>
-          After payment, the manuscript is processed and analysed. The report becomes available in your InnoresearX account when analysis is complete.
+          After payment, the manuscript is processed and analysed. The report becomes available in your NovelCheckr account when analysis is complete.
         </p>
         <p>
           The secure report download link is valid for <strong>48 hours</strong> after the report is issued.
@@ -141,7 +141,7 @@ function PrivacyGuide() {
     <>
       <GuideSection kicker="Handling" title="Manuscript privacy">
         <p>
-          Your manuscript is submitted for similarity analysis and handled according to InnoresearX’s privacy and data-handling practices. Unpublished research should be treated as confidential work.
+          Your manuscript is submitted for similarity analysis and handled according to NovelCheckr’s privacy and data-handling practices. Unpublished research should be treated as confidential work.
         </p>
         <p>
           The file is stored so that the order can be processed, analysed, and the report delivered to your account. We do not claim that manuscripts are never stored.
@@ -151,7 +151,7 @@ function PrivacyGuide() {
       <GuideSection kicker="Access" title="Who can see your file">
         <ul className="guide-list">
           <li>You can view your own submissions and reports from your account.</li>
-          <li>Authorised InnoresearX operators process orders and issue reports.</li>
+          <li>Authorised NovelCheckr operators process orders and issue reports.</li>
           <li>If you submit through an institutional (college) account, authorised college administrators may see submission records associated with that institution.</li>
         </ul>
       </GuideSection>

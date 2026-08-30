@@ -32,24 +32,24 @@ def seed():
     # 2. Create or Update Super Admin
     admin_user = User.objects.filter(role='super_admin').exclude(username='demo_admin').first()
     if admin_user:
-        admin_user.email = 'admin@innoresearx.com'
+        admin_user.email = 'admin@novelcheckr.com'
         admin_user.set_password('Demo@123')
         admin_user.save()
-        print("Updated Super Admin user 'admin@innoresearx.com' (password: Demo@123).")
+        print("Updated Super Admin user 'admin@novelcheckr.com' (password: Demo@123).")
     else:
         User.objects.create_superuser(
             username='admin',
-            email='admin@innoresearx.com',
+            email='admin@novelcheckr.com',
             password='Demo@123',
             role='super_admin'
         )
-        print("Created Super Admin user 'admin@innoresearx.com' (password: Demo@123).")
+        print("Created Super Admin user 'admin@novelcheckr.com' (password: Demo@123).")
 
     # 2b. Demo Super Admin for the admin panel
     demo_admin, demo_created = User.objects.update_or_create(
         username='demo_admin',
         defaults={
-            'email': 'admin@innoresearx.com',
+            'email': 'admin@novelcheckr.com',
             'role': 'super_admin',
             'first_name': 'Demo',
             'last_name': 'Admin',
@@ -62,7 +62,7 @@ def seed():
     demo_admin.save()
     print(
         "Created Demo Super Admin." if demo_created else "Updated Demo Super Admin.",
-        "Login: admin@innoresearx.com / Demo@123",
+        "Login: admin@novelcheckr.com / Demo@123",
     )
 
     # 3. Create College B2B

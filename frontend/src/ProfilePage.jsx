@@ -222,7 +222,7 @@ export default function ProfilePage({ user, onProfileUpdate }) {
           <div className="profile-section-copy">
             <span className="profile-section-icon"><Building2 size={16} strokeWidth={1.9} /></span>
             <h3>Account &amp; affiliation</h3>
-            <p>Your login identifier and institutional details used across InnoresearX.</p>
+            <p>Your login identifier and institutional details used across NovelCheckr.</p>
           </div>
           <div className="profile-fields">
             <label className={`profile-field ${fieldErrors.username ? 'is-invalid' : ''}`}>

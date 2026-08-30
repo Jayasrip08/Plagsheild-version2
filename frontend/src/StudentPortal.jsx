@@ -70,12 +70,49 @@ function analysisSteps(order) {
 }
 
 export default function StudentPortal({ user, setUser }) {
-  const [activeTab, setActiveTab] = useState('new_check');
+  const [activeTab, setActiveTabState] = useState(() => {
+    try {
+      return window.sessionStorage.getItem('student-portal-active-tab') || 'new_check';
+    } catch {
+      return 'new_check';
+    }
+  });
+
+  const setActiveTab = (tab) => {
+    setActiveTabState(tab);
+    try {
+      window.sessionStorage.setItem('student-portal-active-tab', tab);
+    } catch (e) {
+      // ignore
+    }
+  };
+
   const [orders, setOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [submittingOrder, setSubmittingOrder] = useState(false);
   const [formError, setFormError] = useState('');
-  const [trackedOrder, setTrackedOrder] = useState(null);
+
+  const [trackedOrder, setTrackedOrderState] = useState(() => {
+    try {
+      const saved = window.sessionStorage.getItem('student-portal-tracked-order');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const setTrackedOrder = (order) => {
+    setTrackedOrderState(order);
+    try {
+      if (order) {
+        window.sessionStorage.setItem('student-portal-tracked-order', JSON.stringify(order));
+      } else {
+        window.sessionStorage.removeItem('student-portal-tracked-order');
+      }
+    } catch (e) {
+      // ignore
+    }
+  };
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     try {
@@ -251,6 +288,9 @@ export default function StudentPortal({ user, setUser }) {
       rzp.on('payment.failed', (response) => {
         const desc = response?.error?.description || 'Payment was not completed. Please try again.';
         toast.error(`Payment failed: ${desc}`);
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
       });
       rzp.open();
     } catch (e) {
@@ -284,11 +324,19 @@ export default function StudentPortal({ user, setUser }) {
       const res = await api.get(`orders/${payload.order_id}/`);
       setTrackedOrder(res.data);
       setActiveTab('tracking');
+
+      // Auto refresh the page after 1.5 seconds so they see the success toast first.
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     } catch (e) {
       console.error("Payment validation failed", e);
       toast.error(
         `Payment verification failed. If money was deducted, contact support with Order #${payload.order_id}.`
       );
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     }
   };
 

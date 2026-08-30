@@ -83,6 +83,11 @@ export const logout = () => {
   localStorage.removeItem('access_token');
   localStorage.removeItem('refresh_token');
   localStorage.removeItem('user');
+  try {
+    window.sessionStorage.clear();
+  } catch (e) {
+    // ignore
+  }
   window.location.href = '/';
 };
 

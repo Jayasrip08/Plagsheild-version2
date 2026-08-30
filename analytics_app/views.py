@@ -19,7 +19,7 @@ class SuperAdminDashboardView(APIView):
         today = now.date()
 
         # Key Metrics
-        today_orders = Order.objects.filter(created_at__date=today).count()
+        today_orders = Order.objects.filter(created_at__date=today).exclude(status='Pending Payment').count()
         
         # B2C Revenue (Paid payments)
         b2c_revenue = Payment.objects.filter(status='Paid').aggregate(total=Sum('amount'))['total'] or 0.00

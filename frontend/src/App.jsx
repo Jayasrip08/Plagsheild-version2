@@ -7,10 +7,6 @@ import logoImage from './images/nc.png'
 
 const AuthAnimation = lazy(() => import('./AuthAnimation'))
 
-const DEMO_ADMIN = {
-  email: 'admin@novelcheckr.com',
-  password: 'Demo@123',
-};
 
 function App() {
   const [user, setUser] = useState(null);
@@ -267,23 +263,6 @@ function App() {
       if (intervalId) clearInterval(intervalId);
     };
   }, [googleClientId, handleGoogleCredentialResponse]);
-
-  const handleDemoAdminLogin = async () => {
-    setIsLogin(true);
-    setUsername(DEMO_ADMIN.email);
-    setPassword(DEMO_ADMIN.password);
-    setAuthError('');
-    setSubmittingAuth(true);
-    try {
-      const loggedInUser = await loginUser(DEMO_ADMIN.email, DEMO_ADMIN.password);
-      setUser(loggedInUser);
-    } catch (e) {
-      console.error('Demo admin login failed', e);
-      setAuthError('Demo admin login failed. Ask someone to run python seed_db.py.');
-    } finally {
-      setSubmittingAuth(false);
-    }
-  };
 
   const handleAuthSubmit = async (e) => {
     e.preventDefault();
@@ -601,16 +580,6 @@ function App() {
                     </button>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  className="demo-admin-login"
-                  onClick={handleDemoAdminLogin}
-                  disabled={submittingAuth}
-                >
-                  <span>Demo Super Admin</span>
-                  <strong>{DEMO_ADMIN.email}</strong>
-                  <em>Sign in to the admin panel</em>
-                </button>
               </>
             ) : (
               /* REGISTER FORM: First Name -> Last Name -> Email -> Password -> Confirm Password -> WhatsApp Number */

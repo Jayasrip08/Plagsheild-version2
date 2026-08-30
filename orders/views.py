@@ -126,7 +126,7 @@ class OrderListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         user = self.request.user
         if user.role == 'super_admin':
-            queryset = Order.objects.all()
+            queryset = Order.objects.exclude(status='Pending Payment')
             search_query = self.request.query_params.get('search', '').strip()
             status_query = self.request.query_params.get('status', '').strip()
             if search_query:
@@ -603,8 +603,8 @@ class SuperAdminOrderQueueView(generics.ListAPIView):
     permission_classes = [IsSuperAdmin]
 
     def get_queryset(self):
-        # Return all pending orders (B2B, Paid B2C, or newly Submitted orders), sorted express priority first
-        return Order.objects.exclude(status='Report Ready').select_related('user', 'college', 'payment').order_by('-is_express', '-created_at')
+        # Return all pending orders (exclude Report Ready and Pending Payment), sorted express priority first
+        return Order.objects.exclude(status__in=['Report Ready', 'Pending Payment']).select_related('user', 'college', 'payment').order_by('-is_express', '-created_at')
 
 
 class SuperAdminUpdateOrderView(APIView):

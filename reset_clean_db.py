@@ -10,7 +10,7 @@ from orders.models import Order, PricingConfig
 from payments.models import Payment
 
 def reset_and_seed():
-    print("Clearing all orders, payments, colleges, and users...")
+    print("Clearing all orders, payments, colleges, pricing configs, and users...")
     Payment.objects.all().delete()
     Order.objects.all().delete()
     User.objects.all().delete()
@@ -31,15 +31,15 @@ def reset_and_seed():
     User.objects.create_superuser(
         username='admin',
         email='admin@novelcheckr.com',
-        password='Demo@123',
+        password='Admin@innolift',
         role='super_admin'
     )
 
-    # 3. Demo B2C Student
+    # 3. B2C Student
     User.objects.create_user(
         username='student',
         email='student@gmail.com',
-        password='student123',
+        password='Student@123',
         role='b2c_student'
     )
 

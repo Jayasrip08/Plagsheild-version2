@@ -87,8 +87,14 @@ export const logout = () => {
 };
 
 export const getUserProfile = () => {
-  const user = localStorage.getItem('user');
-  return user ? JSON.parse(user) : null;
+  try {
+    const user = localStorage.getItem('user');
+    const token = localStorage.getItem('access_token');
+    if (!user || !token) return null;
+    return JSON.parse(user);
+  } catch {
+    return null;
+  }
 };
 
 export default api;

@@ -183,11 +183,34 @@ def razorpay_webhook(request):
     """
     Razorpay Webhook Handler Endpoint: /api/razorpay/webhook/
     Processes payment.captured, order.paid, and payment.failed events from Razorpay servers.
+
+    Security note: verification is mandatory, not optional. Do not weaken this to
+    "verify only if a secret/signature happens to be present" — that lets anyone who
+    knows (or brute-forces) a razorpay_order_id POST a forged payment.captured event
+    with no signature at all and have it trusted as a real payment. The webhook secret
+    is set separately from the API key secret (Razorpay Dashboard > Settings > Webhooks
+    > your webhook > Secret) and must never fall back to RAZORPAY_KEY_SECRET — they are
+    different values and a real webhook signed with the webhook secret will not verify
+    against the API key secret.
     """
-    webhook_secret = getattr(settings, 'RAZORPAY_WEBHOOK_SECRET', '') or getattr(settings, 'RAZORPAY_KEY_SECRET', '')
+    webhook_secret = settings.RAZORPAY_WEBHOOK_SECRET
+    if not webhook_secret:
+        logger.error("Razorpay webhook received but RAZORPAY_WEBHOOK_SECRET is not configured.")
+        return Response({"error": "Webhook not configured"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
     webhook_signature = request.headers.get('X-Razorpay-Signature', '')
+    if not webhook_signature:
+        logger.warning("Razorpay webhook rejected: missing X-Razorpay-Signature header.")
+        return Response({"error": "Missing signature"}, status=status.HTTP_400_BAD_REQUEST)
 
     payload_body = request.body.decode('utf-8')
+
+    client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+    try:
+        client.utility.verify_webhook_signature(payload_body, webhook_signature, webhook_secret)
+    except razorpay.errors.SignatureVerificationError:
+        logger.warning("Razorpay webhook rejected: signature verification failed.")
+        return Response({"error": "Invalid webhook signature"}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
         data = json.loads(payload_body) if payload_body else {}
@@ -195,16 +218,6 @@ def razorpay_webhook(request):
         return Response({"error": "Invalid JSON payload"}, status=status.HTTP_400_BAD_REQUEST)
 
     event = data.get('event', '')
-
-    # Optional signature verification if webhook_secret is configured
-    if settings.RAZORPAY_KEY_SECRET and webhook_secret and webhook_signature:
-        try:
-            client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
-            client.utility.verify_webhook_signature(payload_body, webhook_signature, webhook_secret)
-        except Exception as e:
-            logger.warning(f"Razorpay Webhook Signature verification failed: {e}")
-            return Response({"error": "Invalid webhook signature"}, status=status.HTTP_400_BAD_REQUEST)
-
     payload_entity = data.get('payload', {}).get('payment', {}).get('entity', {})
     razorpay_order_id = payload_entity.get('order_id')
     razorpay_payment_id = payload_entity.get('id')
@@ -215,20 +228,26 @@ def razorpay_webhook(request):
             order = payment.order
 
             if event in ['payment.captured', 'order.paid']:
-                payment.status = 'Paid'
-                payment.razorpay_payment_id = razorpay_payment_id or payment.razorpay_payment_id
-                payment.paid_at = payment.paid_at or timezone.now()
-                apply_razorpay_payload(payment, payload_entity)
-                payment.save()
+                if payment.status != 'Paid':
+                    payment.status = 'Paid'
+                    payment.razorpay_payment_id = razorpay_payment_id or payment.razorpay_payment_id
+                    payment.paid_at = payment.paid_at or timezone.now()
+                    apply_razorpay_payload(payment, payload_entity)
+                    payment.save()
 
-                order.status = 'Submitted'
-                order.save()
-                logger.info(f"Webhook updated order #{order.id} to Paid & Submitted.")
+                    if order.status == 'Pending Payment':
+                        order.status = 'Submitted'
+                        order.save()
+                    logger.info(f"Webhook updated order #{order.id} to Paid & Submitted.")
+                # else: already confirmed (e.g. by the client-side verify call) — idempotent no-op.
 
             elif event == 'payment.failed':
-                payment.status = 'Failed'
-                payment.save()
-                logger.info(f"Webhook marked payment for order #{order.id} as Failed.")
+                if payment.status != 'Paid':
+                    payment.status = 'Failed'
+                    payment.gateway_payload = payload_entity
+                    payment.save()
+                    logger.info(f"Webhook marked payment for order #{order.id} as Failed.")
+                # else: never downgrade a payment already confirmed as paid.
 
         except Payment.DoesNotExist:
             logger.warning(f"Webhook received for untracked razorpay_order_id: {razorpay_order_id}")

@@ -171,22 +171,70 @@
       ]
     }
     </script>
+    <style>
+      html, body { margin: 0; background: #ffffff; }
+      #seo-fallback {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+      .app-boot {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        font-family: 'Source Sans 3', system-ui, sans-serif;
+        color: #64748b;
+        background: #ffffff;
+      }
+      .app-boot-spin {
+        width: 28px;
+        height: 28px;
+        border: 2px solid #e2e8f0;
+        border-top-color: #1570ef;
+        border-radius: 50%;
+        animation: app-boot-spin 0.7s linear infinite;
+      }
+      @keyframes app-boot-spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
   </head>
   <body>
-    <div id="root">
-      <!-- Static fallback for crawlers and AI assistants that do not execute JavaScript. React replaces this on load. -->
+    <div id="seo-fallback">
+      <h1>NovelCheckr &mdash; Online Plagiarism Checker &amp; AI Content Detector for India and Worldwide</h1>
+      <p>
+        NovelCheckr offers Turnitin-grade similarity scanning, instant PDF audit reports, and AI content analysis
+        for individual researchers, students, and academic institutions. Check your thesis, research paper, or
+        essay for plagiarism online and get a confidential similarity report in minutes.
+      </p>
+      <p>
+        Trusted for UGC and journal submissions across India, with plans starting at ₹99 per document
+        (GST inclusive) and worldwide delivery of digitally signed PDF audit certificates.
+      </p>
+    </div>
+    <noscript>
       <main>
         <h1>NovelCheckr &mdash; Online Plagiarism Checker &amp; AI Content Detector for India and Worldwide</h1>
         <p>
           NovelCheckr offers Turnitin-grade similarity scanning, instant PDF audit reports, and AI content analysis
-          for individual researchers, students, and academic institutions. Check your thesis, research paper, or
-          essay for plagiarism online and get a confidential similarity report in minutes.
-        </p>
-        <p>
-          Trusted for UGC and journal submissions across India, with plans starting at ₹99 per document
-          (GST inclusive) and worldwide delivery of digitally signed PDF audit certificates.
+          for individual researchers, students, and academic institutions. Enable JavaScript to use the full platform.
         </p>
       </main>
+    </noscript>
+    <div id="root">
+      <div class="app-boot" aria-live="polite">
+        <div class="app-boot-spin" aria-hidden="true"></div>
+        <span>Loading NovelCheckr…</span>
+      </div>
     </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

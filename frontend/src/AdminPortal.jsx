@@ -13,9 +13,9 @@ import {
   Clock,
   History,
   Users,
-  DollarSign,
-  Headphones,
-  ShieldCheck,
+  BadgeIndianRupee,
+  LifeBuoy,
+  Shield,
   LogOut
 } from 'lucide-react';
 import SubmissionRecord, { paymentOf, paymentStatusLabel } from './SubmissionRecord';
@@ -324,9 +324,9 @@ export default function AdminPortal({ user }) {
             <span className="logo-mark">
               <img src={logoImage} alt="NovelCheckr" />
             </span>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div className="logo-copy">
               <span className="logo-text">NovelCheckr</span>
-              <span style={{ fontSize: '10px', color: '#1570ef', letterSpacing: '0.08em', fontWeight: '700', textTransform: 'uppercase' }}>Super Admin</span>
+              <span className="logo-sub">Super Admin</span>
             </div>
           </div>
           <button
@@ -336,59 +336,50 @@ export default function AdminPortal({ user }) {
             aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
             title={sidebarOpen ? 'Collapse' : 'Expand'}
           >
-            {sidebarOpen ? <PanelLeftClose size={18} strokeWidth={1.75} /> : <PanelLeftOpen size={18} strokeWidth={1.75} />}
+            {sidebarOpen ? <PanelLeftClose size={16} strokeWidth={2} /> : <PanelLeftOpen size={16} strokeWidth={2} />}
           </button>
         </div>
 
-        <div className="sidebar-profile" title={user?.username || 'Super Admin'}>
-          <span className="profile-avatar">SA</span>
-          <div className="profile-info">
-            <strong>{user?.username || 'Super Admin'}</strong>
-            <span>{user?.email || 'Super Admin Account'}</span>
-          </div>
-        </div>
-
-        <div className="sidebar-nav">
-          <button className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')} title="BI Dashboard">
-            <span className="nav-ico"><LayoutDashboard size={20} strokeWidth={1.75} /></span>
-            <span className="nav-label">BI Dashboard</span>
+        <nav className="sidebar-nav" aria-label="Admin">
+          <button className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')} title="Dashboard">
+            <span className="nav-ico"><LayoutDashboard size={18} strokeWidth={2} /></span>
+            <span className="nav-label">Dashboard</span>
           </button>
-          <button className={`nav-link ${activeTab === 'queue' ? 'active' : ''}`} onClick={() => { setActiveTab('queue'); fetchQueue(); }} title="Pending Queue">
-            <span className="nav-ico"><Clock size={20} strokeWidth={1.75} /></span>
-            <span className="nav-label">Pending Queue</span>
+          <button className={`nav-link ${activeTab === 'queue' ? 'active' : ''}`} onClick={() => { setActiveTab('queue'); fetchQueue(); }} title="Queue">
+            <span className="nav-ico"><Clock size={18} strokeWidth={2} /></span>
+            <span className="nav-label">Queue</span>
             {queue.length > 0 && <span className="nav-badge">{queue.length}</span>}
           </button>
-          <button className={`nav-link ${activeTab === 'history' ? 'active' : ''}`} onClick={() => { setActiveTab('history'); fetchHistory(); }} title="Order History">
-            <span className="nav-ico"><History size={20} strokeWidth={1.75} /></span>
-            <span className="nav-label">Order History</span>
+          <button className={`nav-link ${activeTab === 'history' ? 'active' : ''}`} onClick={() => { setActiveTab('history'); fetchHistory(); }} title="History">
+            <span className="nav-ico"><History size={18} strokeWidth={2} /></span>
+            <span className="nav-label">History</span>
           </button>
-          <button className={`nav-link ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')} title="User Management">
-            <span className="nav-ico"><Users size={20} strokeWidth={1.75} /></span>
-            <span className="nav-label">User Management</span>
+          <button className={`nav-link ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')} title="Users">
+            <span className="nav-ico"><Users size={18} strokeWidth={2} /></span>
+            <span className="nav-label">Users</span>
           </button>
-          <button className={`nav-link ${activeTab === 'pricing' ? 'active' : ''}`} onClick={() => setActiveTab('pricing')} title="Pricing Configuration">
-            <span className="nav-ico"><DollarSign size={20} strokeWidth={1.75} /></span>
-            <span className="nav-label">Pricing Configuration</span>
+          <button className={`nav-link ${activeTab === 'pricing' ? 'active' : ''}`} onClick={() => setActiveTab('pricing')} title="Pricing">
+            <span className="nav-ico"><BadgeIndianRupee size={18} strokeWidth={2} /></span>
+            <span className="nav-label">Pricing</span>
           </button>
-          <button className={`nav-link ${activeTab === 'support' ? 'active' : ''}`} onClick={() => { setActiveTab('support'); fetchSupportInbox(); }} title="Help & Support">
-            <span className="nav-ico"><Headphones size={20} strokeWidth={1.75} /></span>
-            <span className="nav-label">Help & Support</span>
+          <button className={`nav-link ${activeTab === 'support' ? 'active' : ''}`} onClick={() => { setActiveTab('support'); fetchSupportInbox(); }} title="Support">
+            <span className="nav-ico"><LifeBuoy size={18} strokeWidth={2} /></span>
+            <span className="nav-label">Support</span>
             {(supportOpenCount || supportTickets.filter((t) => t.status !== 'resolved').length) > 0 && (
               <span className="nav-badge">{supportOpenCount || supportTickets.filter((t) => t.status !== 'resolved').length}</span>
             )}
           </button>
-        </div>
+        </nav>
 
         <div className="sidebar-footer">
-          <div className="secure-card" title="Super Admin System Console">
-            <span className="nav-ico"><ShieldCheck size={20} strokeWidth={1.75} /></span>
+          <div className="secure-card" title="Admin console">
+            <span className="nav-ico"><Shield size={16} strokeWidth={2} /></span>
             <div className="secure-card-copy">
-              <strong>Admin Console</strong>
-              <p>Full system control & verification.</p>
+              <strong>Admin</strong>
             </div>
           </div>
           <button className="sidebar-logout" onClick={logout} title="Logout">
-            <span className="nav-ico"><LogOut size={20} strokeWidth={1.75} /></span>
+            <span className="nav-ico"><LogOut size={18} strokeWidth={2} /></span>
             <span className="nav-label">Logout</span>
           </button>
         </div>

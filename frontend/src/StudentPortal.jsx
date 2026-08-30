@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'react-toastify';
 import {
-  Activity,
-  CircleUser,
-  ClipboardList,
-  FilePlus,
-  Headphones,
+  History,
+  UserRound,
+  FilePlus2,
+  LifeBuoy,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
-  ShieldCheck,
+  Shield,
+  ScanLine,
 } from 'lucide-react';
 import api, { logout } from './api';
 import ProfilePage from './ProfilePage';
@@ -237,11 +238,11 @@ export default function StudentPortal({ user, setUser }) {
           email: user.email,
           contact: user.phone || '',
         },
-        theme: { color: '#0f172a' },
+        theme: { color: '#1570ef' },
         modal: {
           ondismiss: () => {
             if (!checkoutCompleted) {
-              setFormError('Payment cancelled. You can retry from this page.');
+              toast.warn('Payment cancelled. You can retry anytime from this page.');
             }
           },
         },
@@ -249,13 +250,13 @@ export default function StudentPortal({ user, setUser }) {
       const rzp = new window.Razorpay(options);
       rzp.on('payment.failed', (response) => {
         const desc = response?.error?.description || 'Payment was not completed. Please try again.';
-        setFormError(desc);
+        toast.error(`Payment failed: ${desc}`);
       });
       rzp.open();
     } catch (e) {
       console.error('Payment initiation failed', e);
       const apiError = e.response?.data?.error;
-      setFormError(apiError || e.message || 'Payment initiation failed. Please try again.');
+      toast.error(apiError || e.message || 'Payment initiation failed. Please try again.');
     }
   };
 
@@ -270,19 +271,24 @@ export default function StudentPortal({ user, setUser }) {
         razorpay_signature: `sig_mock_${Date.now()}`,
         order_id: order.id,
       });
+    } else {
+      toast.warn('Payment cancelled. You can retry anytime from this page.');
     }
   };
 
   const verifyPayment = async (payload) => {
     try {
       await api.post('payments/verify/', payload);
+      toast.success('Payment successful! Your document has been submitted for analysis.');
       fetchOrders();
       const res = await api.get(`orders/${payload.order_id}/`);
       setTrackedOrder(res.data);
       setActiveTab('tracking');
     } catch (e) {
       console.error("Payment validation failed", e);
-      setFormError("Payment verification failed. Contact support.");
+      toast.error(
+        `Payment verification failed. If money was deducted, contact support with Order #${payload.order_id}.`
+      );
     }
   };
 
@@ -342,58 +348,49 @@ export default function StudentPortal({ user, setUser }) {
             aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
             title={sidebarOpen ? 'Collapse' : 'Expand'}
           >
-            {sidebarOpen ? <PanelLeftClose size={18} strokeWidth={1.75} /> : <PanelLeftOpen size={18} strokeWidth={1.75} />}
+            {sidebarOpen ? <PanelLeftClose size={16} strokeWidth={2} /> : <PanelLeftOpen size={16} strokeWidth={2} />}
           </button>
-        </div>
-
-        <div className="sidebar-profile" title={user.email || user.username}>
-          <span className="profile-avatar">{(user.username || 'U').slice(0, 1).toUpperCase()}</span>
-          <div className="profile-info">
-            <strong>{user.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : user.username}</strong>
-            <span>{user.email || user.username}</span>
-          </div>
         </div>
 
         <button
           className={`sidebar-cta ${activeTab === 'new_check' ? 'is-active' : ''}`}
           onClick={() => setActiveTab('new_check')}
-          title="New Document Check"
+          title="New Check"
         >
-          <span className="nav-ico"><FilePlus size={20} strokeWidth={1.75} /></span>
-          <span className="nav-label">New Document Check</span>
+          <span className="nav-ico"><FilePlus2 size={18} strokeWidth={2} /></span>
+          <span className="nav-label">New Check</span>
         </button>
 
-        <div className="sidebar-nav">
-          <button className={`nav-link ${activeTab === 'history' ? 'active' : ''}`} onClick={() => setActiveTab('history')} title="Order History">
-            <span className="nav-ico"><ClipboardList size={20} strokeWidth={1.75} /></span>
-            <span className="nav-label">Order History</span>
+        <nav className="sidebar-nav" aria-label="Workspace">
+          <button className={`nav-link ${activeTab === 'history' ? 'active' : ''}`} onClick={() => setActiveTab('history')} title="History">
+            <span className="nav-ico"><History size={18} strokeWidth={2} /></span>
+            <span className="nav-label">History</span>
           </button>
           <button className={`nav-link ${activeTab === 'profile' ? 'active' : ''}`} onClick={() => setActiveTab('profile')} title="Profile">
-            <span className="nav-ico"><CircleUser size={20} strokeWidth={1.75} /></span>
+            <span className="nav-ico"><UserRound size={18} strokeWidth={2} /></span>
             <span className="nav-label">Profile</span>
           </button>
-          <button className={`nav-link ${activeTab === 'support' ? 'active' : ''}`} onClick={() => setActiveTab('support')} title="Help & Support">
-            <span className="nav-ico"><Headphones size={20} strokeWidth={1.75} /></span>
-            <span className="nav-label">Help & Support</span>
+          <button className={`nav-link ${activeTab === 'support' ? 'active' : ''}`} onClick={() => setActiveTab('support')} title="Support">
+            <span className="nav-ico"><LifeBuoy size={18} strokeWidth={2} /></span>
+            <span className="nav-label">Support</span>
           </button>
           {trackedOrder && (
-            <button className={`nav-link ${activeTab === 'tracking' ? 'active' : ''}`} onClick={() => setActiveTab('tracking')} title="Analysis Status">
-              <span className="nav-ico"><Activity size={20} strokeWidth={1.75} /></span>
-              <span className="nav-label">Analysis Status</span>
+            <button className={`nav-link ${activeTab === 'tracking' ? 'active' : ''}`} onClick={() => setActiveTab('tracking')} title="Status">
+              <span className="nav-ico"><ScanLine size={18} strokeWidth={2} /></span>
+              <span className="nav-label">Status</span>
             </button>
           )}
-        </div>
+        </nav>
 
         <div className="sidebar-footer">
-          <div className="secure-card" title="Your data is encrypted">
-            <span className="nav-ico"><ShieldCheck size={20} strokeWidth={1.75} /></span>
+          <div className="secure-card" title="Encrypted uploads and licensed analysis">
+            <span className="nav-ico"><Shield size={16} strokeWidth={2} /></span>
             <div className="secure-card-copy">
-              <strong>Your Data is Secure</strong>
-              <p>Encrypted uploads and licensed analysis.</p>
+              <strong>Secure</strong>
             </div>
           </div>
           <button className="sidebar-logout" onClick={logout} title="Logout">
-            <span className="nav-ico"><LogOut size={20} strokeWidth={1.75} /></span>
+            <span className="nav-ico"><LogOut size={18} strokeWidth={2} /></span>
             <span className="nav-label">Logout</span>
           </button>
         </div>

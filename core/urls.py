@@ -8,6 +8,8 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView
 )
 
+from payments.views import razorpay_webhook
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     
@@ -15,9 +17,12 @@ urlpatterns = [
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     
+    # Razorpay Webhook Endpoint
+    path('api/razorpay/webhook/', razorpay_webhook, name='razorpay_webhook'),
+    
     # API Root & Health Check
     path('', lambda request: JsonResponse({"status": "NovelCheckr API Active", "version": "1.0"})),
-    path('api/', lambda request: JsonResponse({"status": "API Root Active", "endpoints": ["accounts", "colleges", "orders", "payments", "analytics", "support"]})),
+    path('api/', lambda request: JsonResponse({"status": "API Root Active", "endpoints": ["accounts", "colleges", "orders", "payments", "analytics", "support", "razorpay/webhook"]})),
     
     # App routers
     path('api/accounts/', include('accounts.urls')),

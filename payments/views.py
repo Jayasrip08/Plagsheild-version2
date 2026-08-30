@@ -1,15 +1,22 @@
+import json
+import logging
 from decimal import Decimal
 
 import razorpay
 from django.conf import settings
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status, permissions
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
 from orders.models import Order
 from .models import Payment
 from .utils import apply_razorpay_payload
+
+logger = logging.getLogger(__name__)
 
 
 def _amount_in_paise(price) -> int:
@@ -167,3 +174,64 @@ class VerifyPaymentView(APIView):
             payment.status = 'Failed'
             payment.save()
             return Response({"error": f"Razorpay signature check failed: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def razorpay_webhook(request):
+    """
+    Razorpay Webhook Handler Endpoint: /api/razorpay/webhook/
+    Processes payment.captured, order.paid, and payment.failed events from Razorpay servers.
+    """
+    webhook_secret = getattr(settings, 'RAZORPAY_WEBHOOK_SECRET', '') or getattr(settings, 'RAZORPAY_KEY_SECRET', '')
+    webhook_signature = request.headers.get('X-Razorpay-Signature', '')
+
+    payload_body = request.body.decode('utf-8')
+
+    try:
+        data = json.loads(payload_body) if payload_body else {}
+    except json.JSONDecodeError:
+        return Response({"error": "Invalid JSON payload"}, status=status.HTTP_400_BAD_REQUEST)
+
+    event = data.get('event', '')
+
+    # Optional signature verification if webhook_secret is configured
+    if settings.RAZORPAY_KEY_SECRET and webhook_secret and webhook_signature:
+        try:
+            client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+            client.utility.verify_webhook_signature(payload_body, webhook_signature, webhook_secret)
+        except Exception as e:
+            logger.warning(f"Razorpay Webhook Signature verification failed: {e}")
+            return Response({"error": "Invalid webhook signature"}, status=status.HTTP_400_BAD_REQUEST)
+
+    payload_entity = data.get('payload', {}).get('payment', {}).get('entity', {})
+    razorpay_order_id = payload_entity.get('order_id')
+    razorpay_payment_id = payload_entity.get('id')
+
+    if razorpay_order_id:
+        try:
+            payment = Payment.objects.select_related('order').get(razorpay_order_id=razorpay_order_id)
+            order = payment.order
+
+            if event in ['payment.captured', 'order.paid']:
+                payment.status = 'Paid'
+                payment.razorpay_payment_id = razorpay_payment_id or payment.razorpay_payment_id
+                payment.paid_at = payment.paid_at or timezone.now()
+                apply_razorpay_payload(payment, payload_entity)
+                payment.save()
+
+                order.status = 'Submitted'
+                order.save()
+                logger.info(f"Webhook updated order #{order.id} to Paid & Submitted.")
+
+            elif event == 'payment.failed':
+                payment.status = 'Failed'
+                payment.save()
+                logger.info(f"Webhook marked payment for order #{order.id} as Failed.")
+
+        except Payment.DoesNotExist:
+            logger.warning(f"Webhook received for untracked razorpay_order_id: {razorpay_order_id}")
+
+    return Response({"status": "Webhook processed successfully", "event": event}, status=status.HTTP_200_OK)
+

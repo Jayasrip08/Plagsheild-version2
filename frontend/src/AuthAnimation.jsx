@@ -5,9 +5,9 @@ import signupAnimation from './animations/signup.json';
 export default function AuthAnimation({ isLogin }) {
   return (
     <Lottie
-      animationData={isLogin ? loginAnimation : signupAnimation}
-      loop={true}
-      autoplay={true}
+      src={isLogin ? loginAnimation : signupAnimation}
+      loop
+      autoplay
       className="auth-hero-lottie"
     />
   );

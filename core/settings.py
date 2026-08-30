@@ -178,9 +178,9 @@ SIMPLE_JWT = {
     'JTI_CLAIM': 'jti',
 }
 
-# Razorpay credentials (from .env — never hardcode secrets here)
-RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID', '')
-RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET', '')
+# Razorpay credentials
+RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID', 'rzp_live_TVz4lo6OWyhFoX')
+RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET', 'HrX4Yg177MvIO6arVpcSkYE8n')
 RAZORPAY_WEBHOOK_SECRET = os.environ.get('RAZORPAY_WEBHOOK_SECRET', '')
 
 # Email Configuration

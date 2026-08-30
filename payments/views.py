@@ -100,7 +100,11 @@ class CreateRazorpayOrderView(APIView):
                 "key": settings.RAZORPAY_KEY_ID
             })
         except Exception as e:
-            return Response({"error": f"Razorpay connection failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            logger.error(f"Razorpay order creation failed: {e}", exc_info=True)
+            err_msg = str(e)
+            if "Authentication failed" in err_msg:
+                err_msg = "Razorpay Authentication failed. Please verify your Key ID and Key Secret in Razorpay Dashboard (API Keys section) and ensure Live mode is activated."
+            return Response({"error": f"Razorpay connection failed: {err_msg}"}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class VerifyPaymentView(APIView):

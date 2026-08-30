@@ -178,11 +178,9 @@ SIMPLE_JWT = {
     'JTI_CLAIM': 'jti',
 }
 
-# Razorpay credentials (from environment only — never hardcode secrets here,
-# not even as a "default" fallback value. A default value still gets committed
-# to git in plain text, which is exactly as exposed as hardcoding it outright.)
-RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID', '')
-RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET', '')
+# Razorpay credentials
+RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID', 'rzp_live_TVz4lo6OWyhFoX')
+RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET', 'HrX4Yg177MvIO6arVpcSkYE8')
 RAZORPAY_WEBHOOK_SECRET = os.environ.get('RAZORPAY_WEBHOOK_SECRET', '')
 
 # Email Configuration

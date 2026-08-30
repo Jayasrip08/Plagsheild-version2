@@ -181,7 +181,7 @@ SIMPLE_JWT = {
 # Razorpay credentials
 RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID', 'rzp_live_TVz4lo6OWyhFoX')
 RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET', 'HrX4Yg177MvIO6arVpcSkYE8')
-RAZORPAY_WEBHOOK_SECRET = os.environ.get('RAZORPAY_WEBHOOK_SECRET', '')
+RAZORPAY_WEBHOOK_SECRET = os.environ.get('RAZORPAY_WEBHOOK_SECRET', 'HrX4Yg177MvIO6arVpcSkYE8')
 
 # Email Configuration
 # For development: emails are printed to the console

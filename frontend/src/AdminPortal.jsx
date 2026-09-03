@@ -151,13 +151,14 @@ export default function AdminPortal({ user }) {
   const fetchHistory = async (query = historySearch.trim()) => {
     setLoadingHistory(true);
     try {
-      const params = {};
+      const params = { status: 'Report Ready' };
       if (query) params.search = query;
       const res = await api.get('orders/', { params });
-      setHistoryOrders(res.data);
+      const completedList = Array.isArray(res.data) ? res.data.filter(o => o.status === 'Report Ready') : [];
+      setHistoryOrders(completedList);
       setSelectedHistoryOrder(null);
     } catch (e) {
-      console.error("Failed to load order history", e);
+      console.error("Failed to load completed order history", e);
     } finally {
       setLoadingHistory(false);
     }
@@ -532,6 +533,7 @@ export default function AdminPortal({ user }) {
                       <th>Manuscript</th>
                       <th>Author</th>
                       <th>Payment</th>
+                      <th>Amount</th>
                       <th>Status</th>
                       <th>Document</th>
                       <th>Actions</th>
@@ -572,6 +574,9 @@ export default function AdminPortal({ user }) {
                         <td className="cell-stack">
                           <strong>{paymentStatusLabel(order)}</strong>
                           <span className="mono-id">{pay?.razorpay_payment_id || pay?.razorpay_order_id || '—'}</span>
+                        </td>
+                        <td style={{ fontWeight: '600' }}>
+                          ₹{parseFloat(order.price || 0).toFixed(2)}
                         </td>
                         <td>
                           <span className={`badge badge-${order.status.toLowerCase().replace(' ', '-')}`}>

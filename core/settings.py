@@ -87,14 +87,14 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
-# Database Configuration (Supabase PostgreSQL - Primary Cloud Engine)
+# Database Configuration (Supabase PostgreSQL - Forced Cloud Engine)
 import dj_database_url
 
-DATABASE_URL = "postgresql://postgres:Plagsheild%402026@db.minlyikcluutryptvgwr.supabase.co:5432/postgres"
+SUPABASE_POSTGRES_URL = "postgresql://postgres:Plagsheild%402026@db.minlyikcluutryptvgwr.supabase.co:5432/postgres"
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default=DATABASE_URL,
+    'default': dj_database_url.parse(
+        SUPABASE_POSTGRES_URL,
         conn_max_age=600,
         conn_health_checks=True,
     )

@@ -147,81 +147,27 @@ class SuperAdminUserListView(generics.ListAPIView):
             )
         return queryset
 
-    def list(self, request, *args, **kwargs):
-        search_query = request.query_params.get('search', '').strip().lower()
-        try:
-            from core.firestore import get_db
-            db = get_db()
-            if db:
-                docs = db.collection('users').get()
-                fs_users = []
-                for doc in docs:
-                    data = doc.to_dict()
-                    u_id = str(data.get('id', ''))
-                    u_name = str(data.get('username', '')).lower()
-                    u_email = str(data.get('email', '')).lower()
-                    
-                    if search_query:
-                        if not (search_query in u_name or search_query in u_email or search_query == u_id):
-                            continue
-
-                    fs_users.append({
-                        "id": data.get('id'),
-                        "username": data.get('username'),
-                        "email": data.get('email'),
-                        "first_name": data.get('first_name', ''),
-                        "last_name": data.get('last_name', ''),
-                        "role": data.get('role', 'b2c_student'),
-                        "phone": data.get('phone', ''),
-                        "is_active": data.get('is_active', True),
-                        "college_name": data.get('college_name', ''),
-                        "department": data.get('department', '')
-                    })
-                
-                if fs_users:
-                    return Response(fs_users)
-        except Exception as e:
-            print(f"Firestore User List Error: {e}")
-
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
-
 
 class SuperAdminBlockUserView(APIView):
     permission_classes = [IsSuperAdmin]
 
     def post(self, request, pk):
         try:
-            from core.firestore import get_db
-            db = get_db()
-            if db:
-                doc_ref = db.collection('users').document(str(pk))
-                doc = doc_ref.get()
-                if doc.exists:
-                    current_active = doc.to_dict().get('is_active', True)
-                    new_active = not current_active
-                    doc_ref.set({'is_active': new_active}, merge=True)
-                    return Response({
-                        "message": f"User {'blocked' if not new_active else 'unblocked'} successfully",
-                        "is_active": new_active
-                    })
-        except Exception as e:
-            print(f"Firestore Block User Error: {e}")
-
-        try:
             user = User.objects.get(pk=pk)
-            if not (user.is_superuser or user.role == 'super_admin'):
-                user.is_active = not user.is_active
-                user.save()
-                return Response({
-                    "message": f"User {'blocked' if not user.is_active else 'unblocked'} successfully",
-                    "is_active": user.is_active
-                })
         except User.DoesNotExist:
-            pass
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+        if user.is_superuser or user.role == 'super_admin':
+            return Response({"error": "Cannot block super admin"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Toggle is_active status
+        user.is_active = not user.is_active
+        user.save()
+        
+        return Response({
+            "message": f"User {'blocked' if not user.is_active else 'unblocked'} successfully",
+            "is_active": user.is_active
+        })
 
 
 PASSWORD_PATTERN = re.compile(r'^(?=.{8}$)(?=.*[!@#$%^&*()_+\-=[\]{};\'":\\|,.<>/?])[A-Z][A-Za-z0-9!@#$%^&*()_+\-=[\]{};\'":\\|,.<>/?]{7}$')

@@ -633,22 +633,6 @@ class SuperAdminOrderQueueView(generics.ListAPIView):
         # Return all pending orders (exclude Report Ready and Pending Payment), sorted express priority first
         return Order.objects.exclude(status__in=['Report Ready', 'Pending Payment']).select_related('user', 'college', 'payment').order_by('-is_express', '-created_at')
 
-    def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-        data = serializer.data
-
-        if not data:
-            try:
-                from services.firestore_service import get_all_firestore_orders
-                fs_orders = get_all_firestore_orders()
-                if fs_orders:
-                    return Response(fs_orders)
-            except Exception as e:
-                print(f"Firestore Admin Read Error: {e}")
-
-        return Response(data)
-
 
 class SuperAdminUpdateOrderView(APIView):
     permission_classes = [IsSuperAdmin]

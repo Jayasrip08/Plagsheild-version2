@@ -87,25 +87,19 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
-# Database
-if os.environ.get('RENDER'):
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': 'plagiarism_platform',
-            'USER': 'postgres',
-            'PASSWORD': 'root',
-            'HOST': 'localhost',
-            'PORT': '5432',
-        }
-    }
+# Database Configuration (Supabase PostgreSQL)
+import dj_database_url
+
+DEFAULT_SUPABASE_URL = "postgresql://postgres:Plagsheild%402026@db.minlyikcluutryptvgwr.supabase.co:5432/postgres"
+DATABASE_URL = os.environ.get('DATABASE_URL', DEFAULT_SUPABASE_URL)
+
+DATABASES = {
+    'default': dj_database_url.config(
+        default=DATABASE_URL,
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
+}
 
 # User Model
 AUTH_USER_MODEL = "accounts.User"

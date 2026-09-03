@@ -170,6 +170,25 @@ class SuperAdminBlockUserView(APIView):
         })
 
 
+class DebugCheckView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        from django.db import connection
+        from accounts.models import User
+        users = list(User.objects.values('id', 'username', 'email', 'role', 'is_active'))
+        admin_user = User.objects.filter(username='admin').first()
+        pass_check = admin_user.check_password('Admin@innolift') if admin_user else False
+        return Response({
+            "database_vendor": connection.vendor,
+            "database_host": connection.settings_dict.get('HOST'),
+            "user_count": len(users),
+            "users": users,
+            "admin_found": bool(admin_user),
+            "pass_check": pass_check
+        })
+
+
 PASSWORD_PATTERN = re.compile(r'^(?=.{8}$)(?=.*[!@#$%^&*()_+\-=[\]{};\'":\\|,.<>/?])[A-Z][A-Za-z0-9!@#$%^&*()_+\-=[\]{};\'":\\|,.<>/?]{7}$')
 PHONE_PATTERN = re.compile(r'^(?:\+91)?\d{10}$')
 

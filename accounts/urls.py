@@ -7,7 +7,8 @@ from .views import (
     B2BStudentListView,
     SuperAdminUserListView,
     SuperAdminBlockUserView,
-    ProfileView
+    ProfileView,
+    DebugCheckView
 )
 
 urlpatterns = [
@@ -19,4 +20,5 @@ urlpatterns = [
     path('super/users/', SuperAdminUserListView.as_view(), name='super_users_list'),
     path('super/users/<int:pk>/block/', SuperAdminBlockUserView.as_view(), name='super_user_block'),
     path('profile/', ProfileView.as_view(), name='profile'),
+    path('debug-check/', DebugCheckView.as_view(), name='debug_check'),
 ]

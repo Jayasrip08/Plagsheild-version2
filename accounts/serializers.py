@@ -133,33 +133,82 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-        # Add custom claims
         token['username'] = user.username
         token['email'] = user.email
-        token['role'] = user.role
-        token['college_id'] = user.college.id if user.college else None
-        token['college_name'] = user.college.college_name if user.college else None
-        token['department'] = user.department
+        token['role'] = getattr(user, 'role', 'b2c_student')
+        token['college_id'] = user.college.id if getattr(user, 'college', None) else None
+        token['college_name'] = user.college.college_name if getattr(user, 'college', None) else None
+        token['department'] = getattr(user, 'department', '')
         return token
 
     def validate(self, attrs):
-        username = attrs.get('username')
-        if username:
-            from django.db.models import Q
-            user = User.objects.filter(Q(email__iexact=username) | Q(username__iexact=username)).first()
-            if user:
-                attrs['username'] = user.username
+        username_or_email = attrs.get('username', '').strip()
+        password = attrs.get('password', '')
 
-        data = super().validate(attrs)
-        # Return user details in JSON response
-        data['user'] = {
-            'id': self.user.id,
-            'username': self.user.username,
-            'email': self.user.email,
-            'role': self.user.role,
-            'phone': self.user.phone,
-            'college_id': self.user.college.id if self.user.college else None,
-            'college_name': self.user.college.college_name if self.user.college else None,
-            'department': self.user.department
-        }
-        return data
+        # 1. First attempt standard Django authentication
+        if username_or_email:
+            from django.db.models import Q
+            db_user = User.objects.filter(Q(email__iexact=username_or_email) | Q(username__iexact=username_or_email)).first()
+            if db_user:
+                attrs['username'] = db_user.username
+
+        try:
+            data = super().validate(attrs)
+            data['user'] = {
+                'id': self.user.id,
+                'username': self.user.username,
+                'email': self.user.email,
+                'role': self.user.role,
+                'phone': self.user.phone,
+                'college_id': self.user.college.id if self.user.college else None,
+                'college_name': self.user.college.college_name if self.user.college else None,
+                'department': self.user.department
+            }
+            return data
+        except Exception:
+            pass
+
+        # 2. Fallback authentication directly against Firestore
+        try:
+            from services.firestore_service import verify_firestore_user_password
+            fs_user, error_msg = verify_firestore_user_password(username_or_email, password)
+            if fs_user and not error_msg:
+                # Synchronize/Create local Django User instance for SimpleJWT token generation
+                user_obj, created = User.objects.get_or_create(
+                    username=fs_user['username'],
+                    defaults={
+                        'email': fs_user.get('email', ''),
+                        'role': fs_user.get('role', 'b2c_student'),
+                        'first_name': fs_user.get('first_name', ''),
+                        'last_name': fs_user.get('last_name', ''),
+                        'phone': fs_user.get('phone', ''),
+                        'department': fs_user.get('department', ''),
+                        'is_active': fs_user.get('is_active', True),
+                    }
+                )
+                user_obj.set_password(password)
+                user_obj.role = fs_user.get('role', 'b2c_student')
+                user_obj.is_active = fs_user.get('is_active', True)
+                if user_obj.role == 'super_admin':
+                    user_obj.is_superuser = True
+                    user_obj.is_staff = True
+                user_obj.save()
+
+                attrs['username'] = user_obj.username
+                self.user = user_obj
+                data = super().validate(attrs)
+                data['user'] = {
+                    'id': user_obj.id,
+                    'username': user_obj.username,
+                    'email': user_obj.email,
+                    'role': user_obj.role,
+                    'phone': user_obj.phone,
+                    'college_id': user_obj.college.id if user_obj.college else None,
+                    'college_name': user_obj.college.college_name if user_obj.college else None,
+                    'department': user_obj.department
+                }
+                return data
+        except Exception as e:
+            print(f"Firestore Auth Fallback Error: {e}")
+
+        raise serializers.ValidationError({"detail": "No active account found with the given credentials"})

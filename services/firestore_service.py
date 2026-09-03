@@ -1,7 +1,47 @@
+import os
 import time
 from django.contrib.auth.hashers import make_password, check_password
 from firebase_admin import firestore
-from core.firestore import get_db
+from core.firestore import get_db, get_storage_bucket
+
+# ----------------------------------------------------
+# FIREBASE STORAGE OPERATIONS
+# ----------------------------------------------------
+
+def upload_file_to_firebase_storage(file_obj, destination_blob_name):
+    """
+    Uploads a file directly to Firebase Cloud Storage and returns its public URL.
+    """
+    try:
+        bucket = get_storage_bucket()
+        if not bucket:
+            print("Firebase Storage Bucket not connected.")
+            return ""
+
+        blob = bucket.blob(destination_blob_name)
+        if hasattr(file_obj, 'read'):
+            file_obj.seek(0)
+            content_type = getattr(file_obj, 'content_type', 'application/octet-stream')
+            blob.upload_from_file(file_obj, content_type=content_type)
+        elif isinstance(file_obj, str) and os.path.exists(file_obj):
+            blob.upload_from_filename(file_obj)
+        else:
+            print("Invalid file object provided for Firebase Storage upload.")
+            return ""
+
+        try:
+            blob.make_public()
+            public_url = blob.public_url
+        except Exception:
+            # Fallback signed URL valid for 10 years if bucket ACL doesn't allow make_public
+            public_url = blob.generate_signed_url(expiration=int(time.time() + 315360000))
+
+        print(f"Firebase Storage: Successfully uploaded '{destination_blob_name}' -> {public_url}")
+        return public_url
+    except Exception as e:
+        print(f"Firebase Storage Upload Error ({destination_blob_name}): {e}")
+        return ""
+
 
 # ----------------------------------------------------
 # USER OPERATIONS (FIRESTORE)
@@ -15,7 +55,6 @@ def create_firestore_user(username, email, password, role='b2c_student', first_n
     if not db:
         raise Exception("Firestore database is not connected.")
 
-    # Check if user already exists
     users_ref = db.collection('users')
     email_query = users_ref.where('email', '==', email.lower()).get()
     if len(email_query) > 0:
@@ -50,12 +89,10 @@ def get_firestore_user_by_email_or_username(identifier):
         return None
 
     users_ref = db.collection('users')
-    # Try email search
     q1 = users_ref.where('email', '==', identifier.lower()).get()
     if q1:
         return q1[0].to_dict()
 
-    # Try username search
     q2 = users_ref.where('username', '==', identifier).get()
     if q2:
         return q2[0].to_dict()
@@ -82,6 +119,55 @@ def verify_firestore_user_password(identifier, password):
 # ----------------------------------------------------
 # ORDER OPERATIONS (FIRESTORE)
 # ----------------------------------------------------
+
+def save_order_to_firestore(order):
+    """
+    Saves or updates an Order document in Firestore collection 'orders'
+    Uploads document & report file to Firebase Cloud Storage!
+    """
+    try:
+        db = get_db()
+        if not db:
+            return
+
+        document_url = ''
+        if getattr(order, 'document', None):
+            try:
+                dest = f"documents/order_{order.id}_{os.path.basename(order.document.name)}"
+                document_url = upload_file_to_firebase_storage(order.document, dest)
+            except Exception as e:
+                print(f"Document Storage Upload Warning: {e}")
+
+        report_file_url = ''
+        if getattr(order, 'report_file', None):
+            try:
+                dest = f"reports/order_{order.id}_{os.path.basename(order.report_file.name)}"
+                report_file_url = upload_file_to_firebase_storage(order.report_file, dest)
+            except Exception as e:
+                print(f"Report Storage Upload Warning: {e}")
+
+        doc_ref = db.collection('orders').document(str(order.id))
+        order_data = {
+            'id': order.id,
+            'user_id': order.user.id,
+            'username': order.user.username,
+            'email': order.user.email,
+            'paper_title': getattr(order, 'paper_title', '') or '',
+            'word_count': order.word_count,
+            'price': float(order.price),
+            'status': order.status,
+            'package_tier': getattr(order, 'package_tier', 'check'),
+            'is_express': getattr(order, 'is_express', False),
+            'author_name': getattr(order, 'author_name', '') or '',
+            'author_email': getattr(order, 'author_email', '') or '',
+            'document_url': document_url or getattr(order, 'document_url', ''),
+            'report_file_url': report_file_url or getattr(order, 'report_file_url', ''),
+            'created_at': firestore.SERVER_TIMESTAMP,
+        }
+        doc_ref.set(order_data, merge=True)
+        print(f"Firestore Sync: Saved order #{order.id} with Firebase Storage URLs to Firestore.")
+    except Exception as e:
+        print(f"Firestore Sync Warning (save_order): {e}")
 
 def create_firestore_order(user_id, username, email, paper_title, word_count, price, package_tier, is_express, is_b2b=False, author_name='', author_email='', department='General'):
     """
@@ -110,6 +196,7 @@ def create_firestore_order(user_id, username, email, paper_title, word_count, pr
         'author_email': author_email,
         'department': department,
         'similarity_score': None,
+        'document_url': '',
         'report_file_url': '',
         'created_at': firestore.SERVER_TIMESTAMP
     }
@@ -145,7 +232,6 @@ def get_all_firestore_orders(search_query='', status_filter=''):
 
     for doc in docs:
         data = doc.to_dict()
-        # Exclude pending payment for admin queue if needed
         if status_filter and data.get('status', '').lower() != status_filter.lower():
             continue
 

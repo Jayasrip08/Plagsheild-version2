@@ -90,8 +90,14 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database Configuration (Supabase PostgreSQL IPv4 Pooler Engine)
 import dj_database_url
 
-SUPABASE_POSTGRES_URL = "postgresql://postgres.minlyikcluutryptvgwr:Plagsheild%402026@aws-0-ap-southeast-2.pooler.supabase.com:6543/postgres"
-DATABASE_URL = os.environ.get('DATABASE_URL', '').strip() or SUPABASE_POSTGRES_URL
+SUPABASE_IPV4_POOLER_URL = "postgresql://postgres.minlyikcluutryptvgwr:Plagsheild%402026@aws-0-ap-southeast-2.pooler.supabase.com:6543/postgres"
+raw_db_url = os.environ.get('DATABASE_URL', '').strip()
+
+# If DATABASE_URL is missing or contains the un-routable direct IPv6 host, use IPv4 Pooler URL
+if not raw_db_url or 'db.minlyikcluutryptvgwr.supabase.co' in raw_db_url or 'sqlite' in raw_db_url:
+    DATABASE_URL = SUPABASE_IPV4_POOLER_URL
+else:
+    DATABASE_URL = raw_db_url
 
 DATABASES = {
     'default': dj_database_url.parse(

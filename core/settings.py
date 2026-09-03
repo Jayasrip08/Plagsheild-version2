@@ -90,8 +90,12 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database Configuration (Supabase PostgreSQL)
 import dj_database_url
 
-DEFAULT_SUPABASE_URL = "postgresql://postgres:Plagsheild%402026@db.minlyikcluutryptvgwr.supabase.co:5432/postgres"
-DATABASE_URL = os.environ.get('DATABASE_URL', DEFAULT_SUPABASE_URL)
+SUPABASE_URL = "postgresql://postgres:Plagsheild%402026@db.minlyikcluutryptvgwr.supabase.co:5432/postgres"
+env_db = os.environ.get('DATABASE_URL', '')
+if env_db and (env_db.startswith('postgres://') or env_db.startswith('postgresql://')):
+    DATABASE_URL = env_db
+else:
+    DATABASE_URL = SUPABASE_URL
 
 DATABASES = {
     'default': dj_database_url.config(

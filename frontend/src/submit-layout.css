@@ -1649,3 +1649,72 @@
   margin: 0 8px;
   color: #1570ef;
 }
+
+/* Manuscript Protection & Privacy Box */
+.manuscript-protection-box {
+  margin-top: 20px;
+  padding: 20px 22px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.protection-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.protection-icon {
+  color: #1570ef;
+  flex-shrink: 0;
+}
+
+.protection-header h4 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.protection-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px 20px;
+}
+
+.protection-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.protection-item.full-width {
+  grid-column: span 2;
+}
+
+.protection-item strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.protection-item p {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.45;
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .protection-grid {
+    grid-template-columns: 1fr;
+  }
+  .protection-item.full-width {
+    grid-column: span 1;
+  }
+}
+

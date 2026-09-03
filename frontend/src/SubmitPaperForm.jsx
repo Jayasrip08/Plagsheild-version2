@@ -919,8 +919,38 @@ export default function SubmitPaperForm({ user, pricingConfig, submitting, onSub
                   </div>
                 )}
                 <FieldError message={showError('file') ? errors.file : ''} />
+
+                <div className="manuscript-protection-box">
+                  <div className="protection-header">
+                    <Lock size={18} className="protection-icon" />
+                    <h4>Your Manuscript Is Protected</h4>
+                  </div>
+                  <div className="protection-grid">
+                    <div className="protection-item">
+                      <strong>Private submission</strong>
+                      <p>Your manuscript is not publicly displayed on NovelCheckr.</p>
+                    </div>
+                    <div className="protection-item">
+                      <strong>Secure transmission</strong>
+                      <p>Documents are transmitted using encrypted HTTPS connections.</p>
+                    </div>
+                    <div className="protection-item">
+                      <strong>Controlled access</strong>
+                      <p>Only authorized users/services required for processing can access your manuscript.</p>
+                    </div>
+                    <div className="protection-item">
+                      <strong>No advertising use</strong>
+                      <p>Your manuscript is not used for advertising or promotional purposes.</p>
+                    </div>
+                    <div className="protection-item full-width">
+                      <strong>Transparent processing</strong>
+                      <p>Where third-party services are used for similarity analysis, the applicable processing is disclosed in our Privacy Policy.</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </section>
+
             )}
 
             {step === 3 && (

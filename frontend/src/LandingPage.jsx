@@ -819,14 +819,31 @@ export default function LandingPage({ onNavigateToAuth }) {
               <ShieldCheck size={20} />
               <span>100% Confidentiality Guarantee</span>
             </div>
-            <h2>Your Research Paper Remains 100% Private</h2>
+            <h2>🔒 Your Manuscript Is Protected</h2>
             <p>
               Unlike standard free plagiarism checkers, NovelCheckr ensures your submitted papers are never added to repository databases or shared with third parties. Your research stays completely your property.
             </p>
-            <div className="security-checks">
-              <span><CheckCircle2 size={16} color="#16a34a" /> End-to-End SSL Encryption</span>
-              <span><CheckCircle2 size={16} color="#16a34a" /> Auto Expiring Secure Links</span>
-              <span><CheckCircle2 size={16} color="#16a34a" /> GST Verified Tax Compliance</span>
+            <div className="security-checks" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', marginTop: '20px' }}>
+              <div>
+                <strong>Private submission</strong>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>Your manuscript is not publicly displayed on NovelCheckr.</p>
+              </div>
+              <div>
+                <strong>Secure transmission</strong>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>Documents are transmitted using encrypted HTTPS connections.</p>
+              </div>
+              <div>
+                <strong>Controlled access</strong>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>Only authorized users/services required for processing can access your manuscript.</p>
+              </div>
+              <div>
+                <strong>No advertising use</strong>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>Your manuscript is not used for advertising or promotional purposes.</p>
+              </div>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <strong>Transparent processing</strong>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>Where third-party services are used for similarity analysis, the applicable processing is disclosed in our Privacy Policy.</p>
+              </div>
             </div>
           </div>
 
@@ -839,6 +856,7 @@ export default function LandingPage({ onNavigateToAuth }) {
           </div>
         </div>
       </section>
+
 
       {/* FAQ Section */}
       <section id="faq" className="landing-section">

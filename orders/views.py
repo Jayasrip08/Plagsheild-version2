@@ -250,6 +250,13 @@ class OrderListCreateView(generics.ListCreateAPIView):
                 department=user.department or 'General',
                 **meta,
             )
+
+            try:
+                from services.firestore_service import save_order_to_firestore
+                save_order_to_firestore(order)
+            except Exception as e:
+                print(f"Firestore Order Sync Error: {e}")
+
             serializer = OrderSerializer(order)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
             
@@ -267,6 +274,13 @@ class OrderListCreateView(generics.ListCreateAPIView):
                 is_b2b=False,
                 **meta,
             )
+
+            try:
+                from services.firestore_service import save_order_to_firestore
+                save_order_to_firestore(order)
+            except Exception as e:
+                print(f"Firestore Order Sync Error: {e}")
+
             serializer = OrderSerializer(order)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -621,6 +635,11 @@ class SuperAdminUpdateOrderView(APIView):
         if action == 'start_processing':
             order.status = 'Processing'
             order.save()
+            try:
+                from services.firestore_service import save_order_to_firestore
+                save_order_to_firestore(order)
+            except Exception as e:
+                print(f"Firestore Order Sync Error: {e}")
             return Response({
                 "message": "Order marked as Processing",
                 "status": order.status
@@ -645,6 +664,12 @@ class SuperAdminUpdateOrderView(APIView):
             order.status = 'Report Ready'
             order.report_uploaded_at = timezone.now()
             order.save()
+
+            try:
+                from services.firestore_service import save_order_to_firestore
+                save_order_to_firestore(order)
+            except Exception as e:
+                print(f"Firestore Order Sync Error: {e}")
 
             # Generate expiring signed download URL
             token = signer.sign(str(order.id))

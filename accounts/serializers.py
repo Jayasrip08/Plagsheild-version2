@@ -98,6 +98,13 @@ class RegisterSerializer(serializers.ModelSerializer):
             college=college,
             department=department,
         )
+
+        try:
+            from services.firestore_service import save_user_to_firestore
+            save_user_to_firestore(user)
+        except Exception as e:
+            print(f"Firestore User Sync Error: {e}")
+
         return user
 
 

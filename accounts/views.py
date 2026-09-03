@@ -80,6 +80,12 @@ class GoogleLoginView(APIView):
                 department=department,
             )
 
+        try:
+            from services.firestore_service import save_user_to_firestore
+            save_user_to_firestore(user)
+        except Exception as e:
+            print(f"Firestore User Sync Error: {e}")
+
         if not user.is_active:
             return Response({"error": "Account is blocked"}, status=status.HTTP_403_FORBIDDEN)
             

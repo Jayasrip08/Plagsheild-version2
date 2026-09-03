@@ -21,3 +21,4 @@ tzdata==2026.3
 urllib3==2.7.0
 whitenoise
 gunicorn
+firebase-admin==6.5.0

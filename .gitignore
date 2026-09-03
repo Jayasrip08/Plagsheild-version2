@@ -21,10 +21,11 @@ frontend/dist/
 frontend/build/
 .eslintcache
 
-# Secrets (Razorpay keys, etc.)
+# Secrets (Razorpay keys, Firebase key, etc.)
 .env
 frontend/.env
 frontend/.env.local
+firebase-key.json
 
 # OS/IDE Files
 .DS_Store

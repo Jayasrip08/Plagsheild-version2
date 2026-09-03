@@ -5,42 +5,41 @@ from firebase_admin import firestore
 from core.firestore import get_db, get_storage_bucket
 
 # ----------------------------------------------------
-# FIREBASE STORAGE OPERATIONS
+# FIREBASE / LOCAL STORAGE FALLBACK OPERATIONS
 # ----------------------------------------------------
 
 def upload_file_to_firebase_storage(file_obj, destination_blob_name):
     """
-    Uploads a file directly to Firebase Cloud Storage and returns its public URL.
+    Attempts to upload to Firebase Storage. 
+    If Firebase throws a Blaze Plan / Spark quota restriction, 
+    it gracefully returns the local Django media URL as a fallback!
     """
     try:
         bucket = get_storage_bucket()
-        if not bucket:
-            print("Firebase Storage Bucket not connected.")
-            return ""
+        if bucket:
+            blob = bucket.blob(destination_blob_name)
+            if hasattr(file_obj, 'read'):
+                file_obj.seek(0)
+                content_type = getattr(file_obj, 'content_type', 'application/octet-stream')
+                blob.upload_from_file(file_obj, content_type=content_type)
+            elif isinstance(file_obj, str) and os.path.exists(file_obj):
+                blob.upload_from_filename(file_obj)
 
-        blob = bucket.blob(destination_blob_name)
-        if hasattr(file_obj, 'read'):
-            file_obj.seek(0)
-            content_type = getattr(file_obj, 'content_type', 'application/octet-stream')
-            blob.upload_from_file(file_obj, content_type=content_type)
-        elif isinstance(file_obj, str) and os.path.exists(file_obj):
-            blob.upload_from_filename(file_obj)
-        else:
-            print("Invalid file object provided for Firebase Storage upload.")
-            return ""
+            try:
+                blob.make_public()
+                public_url = blob.public_url
+            except Exception:
+                public_url = blob.generate_signed_url(expiration=int(time.time() + 315360000))
 
-        try:
-            blob.make_public()
-            public_url = blob.public_url
-        except Exception:
-            # Fallback signed URL valid for 10 years if bucket ACL doesn't allow make_public
-            public_url = blob.generate_signed_url(expiration=int(time.time() + 315360000))
-
-        print(f"Firebase Storage: Successfully uploaded '{destination_blob_name}' -> {public_url}")
-        return public_url
+            print(f"Firebase Storage: Successfully uploaded '{destination_blob_name}' -> {public_url}")
+            return public_url
     except Exception as e:
-        print(f"Firebase Storage Upload Error ({destination_blob_name}): {e}")
-        return ""
+        print(f"Firebase Storage Notice (Spark Plan Fallback): {e}")
+
+    # Fallback to local Django media path if file_obj is a FieldFile
+    if hasattr(file_obj, 'url'):
+        return file_obj.url
+    return ""
 
 
 # ----------------------------------------------------
@@ -122,27 +121,35 @@ def verify_firestore_user_password(identifier, password):
 
 def save_order_to_firestore(order):
     """
-    Saves or updates an Order document in Firestore collection 'orders'
-    Uploads document & report file to Firebase Cloud Storage!
+    Saves or updates an Order document in Firestore collection 'orders'.
+    Handles file URLs safely with local media fallback.
     """
     try:
         db = get_db()
         if not db:
             return
 
-        document_url = ''
+        document_url = getattr(order, 'document_url', '')
         if getattr(order, 'document', None):
             try:
                 dest = f"documents/order_{order.id}_{os.path.basename(order.document.name)}"
-                document_url = upload_file_to_firebase_storage(order.document, dest)
+                uploaded_url = upload_file_to_firebase_storage(order.document, dest)
+                if uploaded_url:
+                    document_url = uploaded_url
+                elif hasattr(order.document, 'url'):
+                    document_url = order.document.url
             except Exception as e:
                 print(f"Document Storage Upload Warning: {e}")
 
-        report_file_url = ''
+        report_file_url = getattr(order, 'report_file_url', '')
         if getattr(order, 'report_file', None):
             try:
                 dest = f"reports/order_{order.id}_{os.path.basename(order.report_file.name)}"
-                report_file_url = upload_file_to_firebase_storage(order.report_file, dest)
+                uploaded_url = upload_file_to_firebase_storage(order.report_file, dest)
+                if uploaded_url:
+                    report_file_url = uploaded_url
+                elif hasattr(order.report_file, 'url'):
+                    report_file_url = order.report_file.url
             except Exception as e:
                 print(f"Report Storage Upload Warning: {e}")
 
@@ -160,12 +167,12 @@ def save_order_to_firestore(order):
             'is_express': getattr(order, 'is_express', False),
             'author_name': getattr(order, 'author_name', '') or '',
             'author_email': getattr(order, 'author_email', '') or '',
-            'document_url': document_url or getattr(order, 'document_url', ''),
-            'report_file_url': report_file_url or getattr(order, 'report_file_url', ''),
+            'document_url': document_url,
+            'report_file_url': report_file_url,
             'created_at': firestore.SERVER_TIMESTAMP,
         }
         doc_ref.set(order_data, merge=True)
-        print(f"Firestore Sync: Saved order #{order.id} with Firebase Storage URLs to Firestore.")
+        print(f"Firestore Sync: Saved order #{order.id} to Firestore.")
     except Exception as e:
         print(f"Firestore Sync Warning (save_order): {e}")
 

@@ -87,10 +87,10 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
-# Database Configuration (Supabase PostgreSQL Engine)
+# Database Configuration (Supabase PostgreSQL IPv4 Pooler Engine)
 import dj_database_url
 
-SUPABASE_POSTGRES_URL = "postgresql://postgres:Plagsheild%402026@db.minlyikcluutryptvgwr.supabase.co:5432/postgres"
+SUPABASE_POSTGRES_URL = "postgresql://postgres.minlyikcluutryptvgwr:Plagsheild%402026@aws-0-ap-southeast-2.pooler.supabase.com:6543/postgres"
 DATABASE_URL = os.environ.get('DATABASE_URL', '').strip() or SUPABASE_POSTGRES_URL
 
 DATABASES = {

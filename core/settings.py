@@ -87,14 +87,15 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
-# Database Configuration (Supabase PostgreSQL - Forced Cloud Engine)
+# Database Configuration (Supabase PostgreSQL Engine)
 import dj_database_url
 
 SUPABASE_POSTGRES_URL = "postgresql://postgres:Plagsheild%402026@db.minlyikcluutryptvgwr.supabase.co:5432/postgres"
+DATABASE_URL = os.environ.get('DATABASE_URL', '').strip() or SUPABASE_POSTGRES_URL
 
 DATABASES = {
     'default': dj_database_url.parse(
-        SUPABASE_POSTGRES_URL,
+        DATABASE_URL,
         conn_max_age=600,
         conn_health_checks=True,
     )

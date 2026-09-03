@@ -152,12 +152,27 @@ function App() {
       }
 
       setGoogleAuthPayload(payload);
-      setShowGooglePhoneModal(true);
+      setSubmittingAuth(true);
+
+      const result = await googleLoginUser({
+        email: payload.email,
+        name: payload.name || payload.given_name || '',
+        mode: isLogin ? 'login' : 'register',
+        role: selectedRole || 'b2c_student',
+      });
+
+      if (result?.requires_phone) {
+        setShowGooglePhoneModal(true);
+      } else if (result?.id) {
+        setUser(result);
+      }
     } catch (e) {
       console.error('Google login failed', e);
-      setAuthError(extractApiErrorMessage(e) || e.message || 'Google OAuth login failed.');
+      setAuthError(extractApiErrorMessage(e) || e.message || 'Google OAuth authentication failed.');
+    } finally {
+      setSubmittingAuth(false);
     }
-  }, []);
+  }, [isLogin, selectedRole]);
 
   const confirmGoogleLoginWithWhatsApp = async (e) => {
     e.preventDefault();

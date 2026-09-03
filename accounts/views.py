@@ -35,6 +35,7 @@ class GoogleLoginView(APIView):
         role = request.data.get('role', 'b2c_student')
         college_id = request.data.get('college_id')
         department = request.data.get('department', '')
+        phone = request.data.get('phone')
 
         if not email:
             return Response({"error": "Email is required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -42,55 +43,75 @@ class GoogleLoginView(APIView):
         if mode not in ('login', 'register'):
             return Response({"error": "Invalid Google auth mode."}, status=status.HTTP_400_BAD_REQUEST)
 
-        username = email.split('@')[0]
-        base_username = username
-        counter = 1
-        user = None
+        user = User.objects.filter(email__iexact=email).first()
 
-        phone = request.data.get('phone')
+        if mode == 'login':
+            if not user:
+                return Response(
+                    {"error": "No account found with this Google email. Please register first."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            if not user.phone and not phone:
+                return Response({
+                    "requires_phone": True,
+                    "message": "Please provide your WhatsApp phone number to complete login."
+                }, status=status.HTTP_200_OK)
 
-        try:
-            user = User.objects.get(email=email)
-            if mode == 'register':
-                if user.role != role:
-                    return Response({"error": "This email is already registered with a different role. One email can only be used for one role."}, status=status.HTTP_400_BAD_REQUEST)
             if phone:
                 user.phone = phone
                 user.save()
-        except User.DoesNotExist:
-            while User.objects.filter(username=username).exists():
-                username = f"{base_username}_{counter}"
-                counter += 1
 
-            college = None
-            if college_id:
-                from colleges.models import College
-                try:
-                    college = College.objects.get(id=college_id)
-                except College.DoesNotExist:
-                    return Response({"error": "College not found"}, status=status.HTTP_400_BAD_REQUEST)
+        elif mode == 'register':
+            if user:
+                if user.role != role:
+                    return Response(
+                        {"error": "This email is already registered with a different role. One email can only be used for one role."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                if not user.phone and not phone:
+                    return Response({
+                        "requires_phone": True,
+                        "message": "Please provide your WhatsApp phone number to complete registration."
+                    }, status=status.HTTP_200_OK)
+                if phone:
+                    user.phone = phone
+                    user.save()
+            else:
+                if not phone:
+                    return Response({
+                        "requires_phone": True,
+                        "message": "Please provide your WhatsApp phone number to complete registration."
+                    }, status=status.HTTP_200_OK)
 
-            user = User.objects.create_user(
-                username=username,
-                email=email,
-                first_name=name,
-                role=role,
-                phone=phone,
-                college=college,
-                department=department,
-            )
+                username = email.split('@')[0]
+                base_username = username
+                counter = 1
+                while User.objects.filter(username=username).exists():
+                    username = f"{base_username}_{counter}"
+                    counter += 1
 
-        try:
-            from services.firestore_service import save_user_to_firestore
-            save_user_to_firestore(user)
-        except Exception as e:
-            print(f"Firestore User Sync Error: {e}")
+                college = None
+                if college_id:
+                    from colleges.models import College
+                    try:
+                        college = College.objects.get(id=college_id)
+                    except College.DoesNotExist:
+                        return Response({"error": "College not found"}, status=status.HTTP_400_BAD_REQUEST)
+
+                user = User.objects.create_user(
+                    username=username,
+                    email=email,
+                    first_name=name,
+                    role=role,
+                    phone=phone,
+                    college=college,
+                    department=department,
+                )
 
         if not user.is_active:
             return Response({"error": "Account is blocked"}, status=status.HTTP_403_FORBIDDEN)
             
         refresh = RefreshToken.for_user(user)
-        # Custom claims matching CustomTokenObtainPairSerializer
         refresh['username'] = user.username
         refresh['email'] = user.email
         refresh['role'] = user.role

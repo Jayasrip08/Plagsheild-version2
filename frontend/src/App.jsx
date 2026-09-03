@@ -526,12 +526,12 @@ function App() {
               /* LOGIN FORM: Clean Email and Password */
               <>
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Email Address</label>
+                  <label className="form-label">Username or Email Address</label>
                   <input 
-                    type="email" 
+                    type="text" 
                     className="form-control" 
                     required 
-                    placeholder="Enter your email address"
+                    placeholder="Enter your username or email"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                   />

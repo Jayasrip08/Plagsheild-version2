@@ -138,6 +138,15 @@ function App() {
     return messages.filter(Boolean).join(' ') || 'Invalid credentials or registration error. Please check values.';
   };
 
+  const isLoginRef = useRef(isLogin);
+  const roleRef = useRef(role);
+  useEffect(() => {
+    isLoginRef.current = isLogin;
+  }, [isLogin]);
+  useEffect(() => {
+    roleRef.current = role;
+  }, [role]);
+
   const [googleAuthPayload, setGoogleAuthPayload] = useState(null);
   const [googleWhatsApp, setGoogleWhatsApp] = useState('');
   const [showGooglePhoneModal, setShowGooglePhoneModal] = useState(false);
@@ -154,11 +163,14 @@ function App() {
       setGoogleAuthPayload(payload);
       setSubmittingAuth(true);
 
+      const currentIsLogin = isLoginRef.current;
+      const currentRole = roleRef.current || 'b2c_student';
+
       const result = await googleLoginUser({
         email: payload.email,
         name: payload.name || payload.given_name || '',
-        mode: isLogin ? 'login' : 'register',
-        role: role || 'b2c_student',
+        mode: currentIsLogin ? 'login' : 'register',
+        role: currentRole,
       });
 
       if (result?.requires_phone) {
@@ -172,7 +184,7 @@ function App() {
     } finally {
       setSubmittingAuth(false);
     }
-  }, [isLogin, role]);
+  }, []);
 
   const confirmGoogleLoginWithWhatsApp = async (e) => {
     e.preventDefault();
@@ -189,7 +201,8 @@ function App() {
         email: googleAuthPayload.email,
         name: googleAuthPayload.name || googleAuthPayload.given_name || '',
         phone: googleWhatsApp,
-        mode: isLogin ? 'login' : 'register',
+        mode: isLoginRef.current ? 'login' : 'register',
+        role: roleRef.current || 'b2c_student',
       });
 
       setUser(loggedInUser);

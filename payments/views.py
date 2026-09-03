@@ -168,11 +168,6 @@ class VerifyPaymentView(APIView):
 
             order.status = 'Submitted'
             order.save()
-            try:
-                from services.firestore_service import save_order_to_firestore
-                save_order_to_firestore(order)
-            except Exception as e:
-                print(f"Firestore Order Sync Error: {e}")
 
             return Response({
                 "status": "Payment verified",

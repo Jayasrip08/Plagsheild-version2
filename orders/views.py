@@ -264,12 +264,6 @@ class OrderListCreateView(generics.ListCreateAPIView):
                 **meta,
             )
 
-            try:
-                from services.firestore_service import save_order_to_firestore
-                save_order_to_firestore(order)
-            except Exception as e:
-                print(f"Firestore Order Sync Error: {e}")
-
             serializer = OrderSerializer(order)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
             
@@ -287,12 +281,6 @@ class OrderListCreateView(generics.ListCreateAPIView):
                 is_b2b=False,
                 **meta,
             )
-
-            try:
-                from services.firestore_service import save_order_to_firestore
-                save_order_to_firestore(order)
-            except Exception as e:
-                print(f"Firestore Order Sync Error: {e}")
 
             serializer = OrderSerializer(order)
             return Response(serializer.data, status=status.HTTP_201_CREATED)

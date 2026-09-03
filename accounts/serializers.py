@@ -143,21 +143,35 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
     def validate(self, attrs):
         username_or_email = attrs.get('username', '').strip()
-        if username_or_email:
-            from django.db.models import Q
-            db_user = User.objects.filter(Q(email__iexact=username_or_email) | Q(username__iexact=username_or_email)).first()
-            if db_user:
-                attrs['username'] = db_user.username
+        password = attrs.get('password', '')
 
-        data = super().validate(attrs)
-        data['user'] = {
-            'id': self.user.id,
-            'username': self.user.username,
-            'email': self.user.email,
-            'role': self.user.role,
-            'phone': self.user.phone,
-            'college_id': self.user.college.id if self.user.college else None,
-            'college_name': self.user.college.college_name if self.user.college else None,
-            'department': self.user.department
-        }
-        return data
+        if not username_or_email or not password:
+            raise serializers.ValidationError({"detail": "Must include both username/email and password."})
+
+        from django.db.models import Q
+        user = User.objects.filter(
+            Q(email__iexact=username_or_email) | Q(username__iexact=username_or_email)
+        ).first()
+
+        if not user or not user.check_password(password):
+            raise serializers.ValidationError({"detail": "No active account found with the given credentials"})
+
+        if not user.is_active:
+            raise serializers.ValidationError({"detail": "This account has been disabled."})
+
+        self.user = user
+        refresh = self.get_token(self.user)
+        return {
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+            'user': {
+                'id': self.user.id,
+                'username': self.user.username,
+                'email': self.user.email,
+                'role': self.user.role,
+                'phone': self.user.phone,
+                'college_id': self.user.college.id if self.user.college else None,
+                'college_name': self.user.college.college_name if self.user.college else None,
+                'department': self.user.department
+            }
+        }

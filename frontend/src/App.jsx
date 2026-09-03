@@ -158,7 +158,7 @@ function App() {
         email: payload.email,
         name: payload.name || payload.given_name || '',
         mode: isLogin ? 'login' : 'register',
-        role: selectedRole || 'b2c_student',
+        role: role || 'b2c_student',
       });
 
       if (result?.requires_phone) {
@@ -172,7 +172,7 @@ function App() {
     } finally {
       setSubmittingAuth(false);
     }
-  }, [isLogin, selectedRole]);
+  }, [isLogin, role]);
 
   const confirmGoogleLoginWithWhatsApp = async (e) => {
     e.preventDefault();

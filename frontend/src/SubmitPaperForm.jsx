@@ -2,14 +2,20 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
+  Ban,
   Check,
   CloudUpload,
+  EyeOff,
+  FileCheck,
   FileText,
   Lock,
   Plus,
+  ShieldCheck,
   Trash2,
+  UserCheck,
   X,
 } from 'lucide-react';
+
 import SubmissionGuidelinesPage, { GuidelinesTrigger } from './SubmissionGuidelines';
 
 const MAX_FILE_MB = 25;
@@ -922,34 +928,54 @@ export default function SubmitPaperForm({ user, pricingConfig, submitting, onSub
 
                 <div className="manuscript-protection-box">
                   <div className="protection-header">
-                    <Lock size={18} className="protection-icon" />
+                    <ShieldCheck size={20} className="protection-icon" />
                     <h4>Your Manuscript Is Protected</h4>
                   </div>
                   <div className="protection-grid">
                     <div className="protection-item">
-                      <strong>Private submission</strong>
+                      <div className="protection-item-header">
+                        <EyeOff size={15} color="#1570ef" />
+                        <strong>Private submission</strong>
+                      </div>
                       <p>Your manuscript is not publicly displayed on NovelCheckr.</p>
                     </div>
+
                     <div className="protection-item">
-                      <strong>Secure transmission</strong>
+                      <div className="protection-item-header">
+                        <Lock size={15} color="#1570ef" />
+                        <strong>Secure transmission</strong>
+                      </div>
                       <p>Documents are transmitted using encrypted HTTPS connections.</p>
                     </div>
+
                     <div className="protection-item">
-                      <strong>Controlled access</strong>
+                      <div className="protection-item-header">
+                        <UserCheck size={15} color="#1570ef" />
+                        <strong>Controlled access</strong>
+                      </div>
                       <p>Only authorized users/services required for processing can access your manuscript.</p>
                     </div>
+
                     <div className="protection-item">
-                      <strong>No advertising use</strong>
+                      <div className="protection-item-header">
+                        <Ban size={15} color="#1570ef" />
+                        <strong>No advertising use</strong>
+                      </div>
                       <p>Your manuscript is not used for advertising or promotional purposes.</p>
                     </div>
+
                     <div className="protection-item full-width">
-                      <strong>Transparent processing</strong>
+                      <div className="protection-item-header">
+                        <FileCheck size={15} color="#1570ef" />
+                        <strong>Transparent processing</strong>
+                      </div>
                       <p>Where third-party services are used for similarity analysis, the applicable processing is disclosed in our Privacy Policy.</p>
                     </div>
                   </div>
                 </div>
               </div>
             </section>
+
 
             )}
 

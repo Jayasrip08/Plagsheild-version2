@@ -1692,6 +1692,12 @@
   gap: 3px;
 }
 
+.protection-item-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .protection-item.full-width {
   grid-column: span 2;
 }
@@ -1707,7 +1713,9 @@
   color: #64748b;
   line-height: 1.45;
   margin: 0;
+  padding-left: 21px;
 }
+
 
 @media (max-width: 640px) {
   .protection-grid {

@@ -9,6 +9,13 @@ else:
 application = get_wsgi_application()
 
 try:
+    from django.core.management import call_command
+    print("[WSGI Boot] Executing database migrations...")
+    call_command('migrate', interactive=False)
+except Exception as e:
+    print(f"[WSGI Migration Exception]: {e}")
+
+try:
     from accounts.models import User
     admin_user, created = User.objects.get_or_create(
         username='admin',

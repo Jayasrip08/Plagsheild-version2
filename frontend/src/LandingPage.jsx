@@ -201,6 +201,8 @@ export default function LandingPage({ onNavigateToAuth }) {
     const stage = reportStageRef.current;
     if (!stage) return undefined;
 
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const coarsePointer = window.matchMedia('(pointer: coarse)').matches;
     const io = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -212,8 +214,32 @@ export default function LandingPage({ onNavigateToAuth }) {
     );
     io.observe(stage);
 
+    if (reduceMotion || coarsePointer) {
+      return () => io.disconnect();
+    }
+
+    const onMove = (event) => {
+      const rect = stage.getBoundingClientRect();
+      const x = (event.clientX - rect.left) / rect.width - 0.5;
+      const y = (event.clientY - rect.top) / rect.height - 0.5;
+      stage.style.setProperty('--tilt-x', `${(-y * 11).toFixed(2)}deg`);
+      stage.style.setProperty('--tilt-y', `${(x * 16).toFixed(2)}deg`);
+      stage.style.setProperty('--glare-x', `${50 + x * 46}%`);
+      stage.style.setProperty('--glare-y', `${32 + y * 40}%`);
+      stage.classList.add('is-tilting');
+    };
+    const onLeave = () => {
+      stage.style.setProperty('--tilt-x', '7deg');
+      stage.style.setProperty('--tilt-y', '-9deg');
+      stage.classList.remove('is-tilting');
+    };
+
+    stage.addEventListener('pointermove', onMove);
+    stage.addEventListener('pointerleave', onLeave);
     return () => {
       io.disconnect();
+      stage.removeEventListener('pointermove', onMove);
+      stage.removeEventListener('pointerleave', onLeave);
     };
   }, []);
 
@@ -496,6 +522,8 @@ export default function LandingPage({ onNavigateToAuth }) {
             ref={reportStageRef}
           >
             <div className="sample-report-scene">
+              <div className="sample-report-layer layer-back" aria-hidden="true" />
+              <div className="sample-report-layer layer-mid" aria-hidden="true" />
               <article
                 className="sample-report-paper"
                 aria-label="Sample NovelCheckr similarity report"
@@ -819,31 +847,14 @@ export default function LandingPage({ onNavigateToAuth }) {
               <ShieldCheck size={20} />
               <span>100% Confidentiality Guarantee</span>
             </div>
-            <h2>🔒 Your Manuscript Is Protected</h2>
+            <h2>Your Research Paper Remains 100% Private</h2>
             <p>
               Unlike standard free plagiarism checkers, NovelCheckr ensures your submitted papers are never added to repository databases or shared with third parties. Your research stays completely your property.
             </p>
-            <div className="security-checks" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', marginTop: '20px' }}>
-              <div>
-                <strong>Private submission</strong>
-                <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>Your manuscript is not publicly displayed on NovelCheckr.</p>
-              </div>
-              <div>
-                <strong>Secure transmission</strong>
-                <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>Documents are transmitted using encrypted HTTPS connections.</p>
-              </div>
-              <div>
-                <strong>Controlled access</strong>
-                <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>Only authorized users/services required for processing can access your manuscript.</p>
-              </div>
-              <div>
-                <strong>No advertising use</strong>
-                <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>Your manuscript is not used for advertising or promotional purposes.</p>
-              </div>
-              <div style={{ gridColumn: '1 / -1' }}>
-                <strong>Transparent processing</strong>
-                <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>Where third-party services are used for similarity analysis, the applicable processing is disclosed in our Privacy Policy.</p>
-              </div>
+            <div className="security-checks">
+              <span><CheckCircle2 size={16} color="#16a34a" /> End-to-End SSL Encryption</span>
+              <span><CheckCircle2 size={16} color="#16a34a" /> Auto Expiring Secure Links</span>
+              <span><CheckCircle2 size={16} color="#16a34a" /> GST Verified Tax Compliance</span>
             </div>
           </div>
 
@@ -856,7 +867,6 @@ export default function LandingPage({ onNavigateToAuth }) {
           </div>
         </div>
       </section>
-
 
       {/* FAQ Section */}
       <section id="faq" className="landing-section">

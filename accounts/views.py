@@ -35,7 +35,6 @@ class GoogleLoginView(APIView):
         role = request.data.get('role', 'b2c_student')
         college_id = request.data.get('college_id')
         department = request.data.get('department', '')
-        phone = request.data.get('phone')
 
         if not email:
             return Response({"error": "Email is required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -43,75 +42,68 @@ class GoogleLoginView(APIView):
         if mode not in ('login', 'register'):
             return Response({"error": "Invalid Google auth mode."}, status=status.HTTP_400_BAD_REQUEST)
 
-        user = User.objects.filter(email__iexact=email).first()
+        username = email.split('@')[0]
+        base_username = username
+        counter = 1
+        user = None
 
-        if mode == 'login':
-            if not user:
-                return Response(
-                    {"error": "No account found with this Google email. Please register first."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            if not user.phone and not phone:
-                return Response({
-                    "requires_phone": True,
-                    "message": "Please provide your WhatsApp phone number to complete login."
-                }, status=status.HTTP_200_OK)
-
-            if phone:
-                user.phone = phone
-                user.save()
-
-        elif mode == 'register':
-            if user:
-                if user.role != role:
-                    return Response(
-                        {"error": "This email is already registered with a different role. One email can only be used for one role."},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                if not user.phone and not phone:
-                    return Response({
-                        "requires_phone": True,
-                        "message": "Please provide your WhatsApp phone number to complete registration."
-                    }, status=status.HTTP_200_OK)
-                if phone:
-                    user.phone = phone
-                    user.save()
+        phone = request.data.get('phone')
+        normalized_phone = None
+        if phone:
+            clean_digits = re.sub(r'\D', '', phone)
+            if len(clean_digits) == 10:
+                normalized_phone = f"+91{clean_digits}"
+            elif len(clean_digits) == 12 and clean_digits.startswith('91'):
+                normalized_phone = f"+{clean_digits}"
             else:
-                if not phone:
-                    return Response({
-                        "requires_phone": True,
-                        "message": "Please provide your WhatsApp phone number to complete registration."
-                    }, status=status.HTTP_200_OK)
+                return Response({"error": "Phone number must be a valid 10-digit mobile number."}, status=status.HTTP_400_BAD_REQUEST)
 
-                username = email.split('@')[0]
-                base_username = username
-                counter = 1
-                while User.objects.filter(username=username).exists():
-                    username = f"{base_username}_{counter}"
-                    counter += 1
+            # Enforce phone uniqueness across accounts
+            if User.objects.filter(phone=normalized_phone).exclude(email__iexact=email).exists():
+                return Response({"error": "This phone number is already registered with another account."}, status=status.HTTP_400_BAD_REQUEST)
 
-                college = None
-                if college_id:
-                    from colleges.models import College
-                    try:
-                        college = College.objects.get(id=college_id)
-                    except College.DoesNotExist:
-                        return Response({"error": "College not found"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            user = User.objects.get(email__iexact=email)
+            if mode == 'register':
+                if user.role != role:
+                    return Response({"error": "This email is already registered with a different role. One email can only be used for one role."}, status=status.HTTP_400_BAD_REQUEST)
+            if normalized_phone:
+                user.phone = normalized_phone
+                user.save()
+        except User.DoesNotExist:
+            while User.objects.filter(username=username).exists():
+                username = f"{base_username}_{counter}"
+                counter += 1
 
-                user = User.objects.create_user(
-                    username=username,
-                    email=email,
-                    first_name=name,
-                    role=role,
-                    phone=phone,
-                    college=college,
-                    department=department,
-                )
+            college = None
+            if college_id:
+                from colleges.models import College
+                try:
+                    college = College.objects.get(id=college_id)
+                except College.DoesNotExist:
+                    return Response({"error": "College not found"}, status=status.HTTP_400_BAD_REQUEST)
+
+            user = User.objects.create_user(
+                username=username,
+                email=email.strip().lower(),
+                first_name=name,
+                role=role,
+                phone=normalized_phone or '',
+                college=college,
+                department=department,
+            )
+
+        try:
+            from services.firestore_service import save_user_to_firestore
+            save_user_to_firestore(user)
+        except Exception as e:
+            print(f"Firestore Sync Error: {e}")
 
         if not user.is_active:
-            return Response({"error": "Account is blocked"}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"error": "Your account has been blocked by the administrator. Please contact support."}, status=status.HTTP_403_FORBIDDEN)
             
         refresh = RefreshToken.for_user(user)
+        # Custom claims matching CustomTokenObtainPairSerializer
         refresh['username'] = user.username
         refresh['email'] = user.email
         refresh['role'] = user.role
@@ -191,22 +183,22 @@ class SuperAdminBlockUserView(APIView):
         })
 
 
-class DebugCheckView(APIView):
-    permission_classes = [permissions.AllowAny]
+class SuperAdminDeleteUserView(APIView):
+    permission_classes = [IsSuperAdmin]
 
-    def get(self, request):
-        from django.db import connection
-        from accounts.models import User
-        users = list(User.objects.values('id', 'username', 'email', 'role', 'is_active'))
-        admin_user = User.objects.filter(username='admin').first()
-        pass_check = admin_user.check_password('Admin@innolift') if admin_user else False
+    def delete(self, request, pk):
+        try:
+            user = User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if user.is_superuser or user.role == 'super_admin':
+            return Response({"error": "Cannot delete super admin"}, status=status.HTTP_400_BAD_REQUEST)
+
+        username = user.username
+        user.delete()
         return Response({
-            "database_vendor": connection.vendor,
-            "database_host": connection.settings_dict.get('HOST'),
-            "user_count": len(users),
-            "users": users,
-            "admin_found": bool(admin_user),
-            "pass_check": pass_check
+            "message": f"User '{username}' (ID: #{pk}) deleted successfully."
         })
 
 
@@ -250,12 +242,25 @@ class ProfileView(APIView):
         user.last_name = data.get('last_name', user.last_name)
         phone_value = data.get('phone')
         if phone_value is not None:
-            if phone_value and not PHONE_PATTERN.match(phone_value):
-                return Response(
-                    {"error": "Phone number must be 10 digits and may include the +91 prefix."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            user.phone = phone_value or user.phone
+            if phone_value:
+                clean_digits = re.sub(r'\D', '', str(phone_value))
+                if len(clean_digits) == 10:
+                    normalized_phone = f"+91{clean_digits}"
+                elif len(clean_digits) == 12 and clean_digits.startswith('91'):
+                    normalized_phone = f"+{clean_digits}"
+                else:
+                    return Response(
+                        {"error": "Phone number must be a valid 10-digit mobile number."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                if User.objects.filter(phone=normalized_phone).exclude(pk=user.pk).exists():
+                    return Response(
+                        {"error": "This phone number is already registered with another account."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                user.phone = normalized_phone
+            else:
+                user.phone = ''
         if 'department' in data:
             user.department = data.get('department', user.department)
         user.save()

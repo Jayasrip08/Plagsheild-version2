@@ -147,8 +147,11 @@ class OrderListCreateView(generics.ListCreateAPIView):
                 queryset = queryset.filter(status__iexact=status_query)
             return queryset.select_related('user', 'college', 'payment').order_by('-created_at')
         elif user.role == 'college_admin':
+            # Submissions for all students in this college
             if not user.college:
                 return Order.objects.none()
+            
+            # Apply filters
             queryset = Order.objects.filter(college=user.college)
             department = self.request.query_params.get('department')
             start_date = self.request.query_params.get('start_date')
@@ -169,24 +172,8 @@ class OrderListCreateView(generics.ListCreateAPIView):
                 
             return queryset.select_related('user', 'college', 'payment').order_by('-created_at')
         else:
+            # Normal B2C user sees only their own orders
             return Order.objects.filter(user=user).select_related('payment', 'college').order_by('-created_at')
-
-    def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-        data = serializer.data
-
-        # Fallback to Firestore if local queryset is empty
-        if not data and request.user.is_authenticated:
-            try:
-                from services.firestore_service import get_firestore_orders_for_user
-                fs_orders = get_firestore_orders_for_user(request.user.id)
-                if fs_orders:
-                    return Response(fs_orders)
-            except Exception as e:
-                print(f"Firestore Read Error: {e}")
-
-        return Response(data)
 
     def create(self, request, *args, **kwargs):
         user = request.user
@@ -264,6 +251,12 @@ class OrderListCreateView(generics.ListCreateAPIView):
                 **meta,
             )
 
+            try:
+                from services.firestore_service import save_order_to_firestore
+                save_order_to_firestore(order)
+            except Exception as e:
+                print(f"Firestore Order Sync Error: {e}")
+
             serializer = OrderSerializer(order)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
             
@@ -281,6 +274,12 @@ class OrderListCreateView(generics.ListCreateAPIView):
                 is_b2b=False,
                 **meta,
             )
+
+            try:
+                from services.firestore_service import save_order_to_firestore
+                save_order_to_firestore(order)
+            except Exception as e:
+                print(f"Firestore Order Sync Error: {e}")
 
             serializer = OrderSerializer(order)
             return Response(serializer.data, status=status.HTTP_201_CREATED)

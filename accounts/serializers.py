@@ -26,6 +26,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class RegisterSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(required=False, allow_blank=True)
     role = serializers.ChoiceField(choices=User.ROLE_CHOICES, default='b2c_student')
     college_id = serializers.IntegerField(required=False, write_only=True)
     admin_secret = serializers.CharField(required=False, write_only=True, allow_blank=True)
@@ -36,7 +37,10 @@ class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['username', 'email', 'password', 'phone', 'role', 'first_name', 'last_name', 'college_id', 'admin_secret', 'department']
-        extra_kwargs = {'password': {'write_only': True}}
+        extra_kwargs = {
+            'password': {'write_only': True},
+            'username': {'required': False, 'validators': []}
+        }
 
     def validate_college_id(self, value):
         from colleges.models import College
@@ -49,13 +53,24 @@ class RegisterSerializer(serializers.ModelSerializer):
     PASSWORD_PATTERN = re.compile(r'^(?=.{8}$)(?=.*[!@#$%^&*()_+\-=[\]{};\'":\\|,.<>/?])[A-Z][A-Za-z0-9!@#$%^&*()_+\-=[\]{};\'":\\|,.<>/?]{7}$')
 
     def validate_email(self, value):
-        if User.objects.filter(email__iexact=value).exists():
+        normalized_email = value.strip().lower()
+        if User.objects.filter(email__iexact=normalized_email).exists():
             raise serializers.ValidationError('This email is already registered. One email can only be used for a single role.')
-        return value
+        return normalized_email
 
     def validate_phone(self, value):
-        if value and not re.match(r'^(?:\+91)?\d{10}$', value):
-            raise serializers.ValidationError('Phone number must be 10 digits and may include the +91 prefix.')
+        if value:
+            clean_digits = re.sub(r'\D', '', value)
+            if len(clean_digits) == 10:
+                normalized = f"+91{clean_digits}"
+            elif len(clean_digits) == 12 and clean_digits.startswith('91'):
+                normalized = f"+{clean_digits}"
+            else:
+                raise serializers.ValidationError('Phone number must be a valid 10-digit mobile number.')
+
+            if User.objects.filter(phone=normalized).exists():
+                raise serializers.ValidationError('This phone number is already registered with another account.')
+            return normalized
         return value
 
     def validate_password(self, value):
@@ -78,9 +93,13 @@ class RegisterSerializer(serializers.ModelSerializer):
         first_name = validated_data.pop('first_name', '')
         last_name = validated_data.pop('last_name', '')
 
-        username = validated_data.get('username') or validated_data.get('email')
-        if not username:
-            raise serializers.ValidationError({'username': 'Username or email is required.'})
+        raw_username = validated_data.get('username') or validated_data.get('email', '').split('@')[0]
+        base_username = raw_username
+        username = base_username
+        counter = 1
+        while User.objects.filter(username=username).exists():
+            username = f"{base_username}_{counter}"
+            counter += 1
 
         college = None
         if college_id:
@@ -103,7 +122,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             from services.firestore_service import save_user_to_firestore
             save_user_to_firestore(user)
         except Exception as e:
-            print(f"Firestore User Sync Error: {e}")
+            print(f"Firestore Sync Error: {e}")
 
         return user
 
@@ -133,45 +152,35 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
+        # Add custom claims
         token['username'] = user.username
         token['email'] = user.email
-        token['role'] = getattr(user, 'role', 'b2c_student')
-        token['college_id'] = user.college.id if getattr(user, 'college', None) else None
-        token['college_name'] = user.college.college_name if getattr(user, 'college', None) else None
-        token['department'] = getattr(user, 'department', '')
+        token['role'] = user.role
+        token['college_id'] = user.college.id if user.college else None
+        token['college_name'] = user.college.college_name if user.college else None
+        token['department'] = user.department
         return token
 
     def validate(self, attrs):
-        username_or_email = attrs.get('username', '').strip()
-        password = attrs.get('password', '')
+        username = attrs.get('username')
+        if username:
+            from django.db.models import Q
+            user = User.objects.filter(Q(email__iexact=username) | Q(username__iexact=username)).first()
+            if user:
+                attrs['username'] = user.username
+                if user.check_password(attrs.get('password')) and not user.is_active:
+                    raise serializers.ValidationError({"detail": "Your account has been blocked by the administrator. Please contact support."})
 
-        if not username_or_email or not password:
-            raise serializers.ValidationError({"detail": "Must include both username/email and password."})
-
-        from django.db.models import Q
-        user = User.objects.filter(
-            Q(email__iexact=username_or_email) | Q(username__iexact=username_or_email)
-        ).first()
-
-        if not user or not user.check_password(password):
-            raise serializers.ValidationError({"detail": "No active account found with the given credentials"})
-
-        if not user.is_active:
-            raise serializers.ValidationError({"detail": "This account has been disabled."})
-
-        self.user = user
-        refresh = self.get_token(self.user)
-        return {
-            'refresh': str(refresh),
-            'access': str(refresh.access_token),
-            'user': {
-                'id': self.user.id,
-                'username': self.user.username,
-                'email': self.user.email,
-                'role': self.user.role,
-                'phone': self.user.phone,
-                'college_id': self.user.college.id if self.user.college else None,
-                'college_name': self.user.college.college_name if self.user.college else None,
-                'department': self.user.department
-            }
-        }
+        data = super().validate(attrs)
+        # Return user details in JSON response
+        data['user'] = {
+            'id': self.user.id,
+            'username': self.user.username,
+            'email': self.user.email,
+            'role': self.user.role,
+            'phone': self.user.phone,
+            'college_id': self.user.college.id if self.user.college else None,
+            'college_name': self.user.college.college_name if self.user.college else None,
+            'department': self.user.department
+        }
+        return data

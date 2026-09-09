@@ -87,25 +87,25 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
-# Database Configuration (Supabase PostgreSQL IPv4 Pooler Engine)
-import dj_database_url
-
-SUPABASE_IPV4_POOLER_URL = "postgresql://postgres.minlyikcluutryptvgwr:Plagsheild%402026@aws-0-ap-southeast-2.pooler.supabase.com:6543/postgres"
-raw_db_url = os.environ.get('DATABASE_URL', '').strip()
-
-# If DATABASE_URL is missing or contains the un-routable direct IPv6 host, use IPv4 Pooler URL
-if not raw_db_url or 'db.minlyikcluutryptvgwr.supabase.co' in raw_db_url or 'sqlite' in raw_db_url:
-    DATABASE_URL = SUPABASE_IPV4_POOLER_URL
+# Database
+if os.environ.get('RENDER'):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 else:
-    DATABASE_URL = raw_db_url
-
-DATABASES = {
-    'default': dj_database_url.parse(
-        DATABASE_URL,
-        conn_max_age=600,
-        conn_health_checks=True,
-    )
-}
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'plagiarism_platform',
+            'USER': 'postgres',
+            'PASSWORD': 'root',
+            'HOST': 'localhost',
+            'PORT': '5432',
+        }
+    }
 
 # User Model
 AUTH_USER_MODEL = "accounts.User"
@@ -140,37 +140,8 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CORS Config
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = True  # In production, restrict this.
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = [
-    "https://www.novelcheckr.com",
-    "https://novelcheckr.com",
-    "http://localhost:5173",
-    "http://localhost:3000",
-]
-CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^https://.*\.novelcheckr\.com$",
-    r"^https://.*\.onrender\.com$",
-]
-CORS_ALLOW_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
-]
-CORS_ALLOW_METHODS = [
-    'DELETE',
-    'GET',
-    'OPTIONS',
-    'PATCH',
-    'POST',
-    'PUT',
-]
 
 # Django REST Framework Settings
 REST_FRAMEWORK = {
@@ -178,7 +149,7 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-        'core.permissions.IsAuthenticatedOrOptions',
+        'rest_framework.permissions.IsAuthenticated',
     ),
 }
 

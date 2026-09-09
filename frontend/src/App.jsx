@@ -19,7 +19,7 @@ function App() {
   const [loadingColleges, setLoadingColleges] = useState(false);
 
   // Auth Form State
-  const [username, setUsername] = useState('');
+  const [loginIdentifier, setLoginIdentifier] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -138,15 +138,6 @@ function App() {
     return messages.filter(Boolean).join(' ') || 'Invalid credentials or registration error. Please check values.';
   };
 
-  const isLoginRef = useRef(isLogin);
-  const roleRef = useRef(role);
-  useEffect(() => {
-    isLoginRef.current = isLogin;
-  }, [isLogin]);
-  useEffect(() => {
-    roleRef.current = role;
-  }, [role]);
-
   const [googleAuthPayload, setGoogleAuthPayload] = useState(null);
   const [googleWhatsApp, setGoogleWhatsApp] = useState('');
   const [showGooglePhoneModal, setShowGooglePhoneModal] = useState(false);
@@ -161,35 +152,31 @@ function App() {
       }
 
       setGoogleAuthPayload(payload);
-      setSubmittingAuth(true);
-
-      const currentIsLogin = isLoginRef.current;
-      const currentRole = roleRef.current || 'b2c_student';
-
-      const result = await googleLoginUser({
-        email: payload.email,
-        name: payload.name || payload.given_name || '',
-        mode: currentIsLogin ? 'login' : 'register',
-        role: currentRole,
-      });
-
-      if (result?.requires_phone) {
-        setShowGooglePhoneModal(true);
-      } else if (result?.id) {
-        setUser(result);
-      }
+      setShowGooglePhoneModal(true);
     } catch (e) {
       console.error('Google login failed', e);
-      setAuthError(extractApiErrorMessage(e) || e.message || 'Google OAuth authentication failed.');
-    } finally {
-      setSubmittingAuth(false);
+      setAuthError(extractApiErrorMessage(e) || e.message || 'Google OAuth login failed.');
     }
   }, []);
 
+  const switchAuthMode = (toLogin) => {
+    setIsLogin(toLogin);
+    setAuthError('');
+    setPassword('');
+    setConfirmPassword('');
+    if (toLogin) {
+      setEmail('');
+      setPhone('');
+      setFirstName('');
+      setLastName('');
+    }
+  };
+
   const confirmGoogleLoginWithWhatsApp = async (e) => {
     e.preventDefault();
-    if (!googleWhatsApp.trim()) {
-      setAuthError('Please enter your WhatsApp mobile number.');
+    const cleanDigits = googleWhatsApp.replace(/\D/g, '');
+    if (cleanDigits.length !== 10) {
+      setAuthError('Please enter a valid 10-digit WhatsApp mobile number.');
       return;
     }
 
@@ -198,11 +185,10 @@ function App() {
 
     try {
       const loggedInUser = await googleLoginUser({
-        email: googleAuthPayload.email,
+        email: googleAuthPayload.email.trim().toLowerCase(),
         name: googleAuthPayload.name || googleAuthPayload.given_name || '',
-        phone: googleWhatsApp,
-        mode: isLoginRef.current ? 'login' : 'register',
-        role: roleRef.current || 'b2c_student',
+        phone: `+91${cleanDigits}`,
+        mode: isLogin ? 'login' : 'register',
       });
 
       setUser(loggedInUser);
@@ -299,10 +285,11 @@ function App() {
 
     try {
       if (isLogin) {
-        const loggedInUser = await loginUser(username, password);
+        const loggedInUser = await loginUser(loginIdentifier.trim(), password);
         setUser(loggedInUser);
       } else {
-        if (!validateGmail(email)) {
+        const cleanEmail = email.trim().toLowerCase();
+        if (!validateGmail(cleanEmail)) {
           setAuthError('Please enter a valid Gmail address ending with @gmail.com.');
           setSubmittingAuth(false);
           return;
@@ -338,14 +325,15 @@ function App() {
           return;
         }
 
+        const derivedUsername = cleanEmail.split('@')[0];
         const payload = {
-          username,
-          email,
+          username: derivedUsername,
+          email: cleanEmail,
           password,
-          phone: phone ? `+91${phone}` : undefined,
+          phone: phone ? `+91${phone.trim()}` : undefined,
           role,
-          first_name: firstName,
-          last_name: lastName,
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
         };
 
         if (role === 'college_admin' || role === 'b2b_student') {
@@ -360,11 +348,9 @@ function App() {
 
         await registerUser(payload);
         alert("Registration successful! Please login with your credentials.");
-        setIsLogin(true);
-        setPassword('');
+        switchAuthMode(true);
+        setLoginIdentifier(cleanEmail);
         setRole('b2c_student');
-        setFirstName('');
-        setLastName('');
         setCollegeId('');
         setAdminSecret('');
         setDepartment('');
@@ -439,12 +425,7 @@ function App() {
     return (
       <LandingPage
         onNavigateToAuth={(tab) => {
-          if (tab === 'register') {
-            setIsLogin(false);
-          } else {
-            setIsLogin(true);
-          }
-          setAuthError('');
+          switchAuthMode(tab !== 'register');
           setViewMode('auth');
         }}
       />
@@ -527,14 +508,14 @@ function App() {
             <button
               type="button"
               className={isLogin ? 'active' : ''}
-              onClick={() => { setIsLogin(true); setAuthError(''); }}
+              onClick={() => switchAuthMode(true)}
             >
               Sign In
             </button>
             <button
               type="button"
               className={!isLogin ? 'active' : ''}
-              onClick={() => { setIsLogin(false); setAuthError(''); }}
+              onClick={() => switchAuthMode(false)}
             >
               Register
             </button>
@@ -554,14 +535,14 @@ function App() {
               /* LOGIN FORM: Clean Email and Password */
               <>
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Username or Email Address</label>
+                  <label className="form-label">Email Address</label>
                   <input 
-                    type="text" 
+                    type="email" 
                     className="form-control" 
                     required 
-                    placeholder="Enter your username or email"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="Enter your email address"
+                    value={loginIdentifier}
+                    onChange={(e) => setLoginIdentifier(e.target.value)}
                   />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
@@ -645,10 +626,7 @@ function App() {
                     required 
                     placeholder="name@gmail.com"
                     value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      if (!username) setUsername(e.target.value.split('@')[0]);
-                    }}
+                    onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
 
@@ -794,7 +772,7 @@ function App() {
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
               </svg>
-              <span>{isLogin ? "Sign in with Google" : "Sign up with Google"}</span>
+              <span>Sign in with Google</span>
             </button>
           </div>
 
@@ -809,9 +787,9 @@ function App() {
 
           <p className="auth-footer">
             {isLogin ? (
-              <>New here? <button type="button" onClick={() => { setIsLogin(false); setAuthError(''); }}>Create an account</button></>
+              <>New here? <button type="button" onClick={() => switchAuthMode(false)}>Create an account</button></>
             ) : (
-              <>Already registered? <button type="button" onClick={() => { setIsLogin(true); setAuthError(''); }}>Sign in instead</button></>
+              <>Already registered? <button type="button" onClick={() => switchAuthMode(true)}>Sign in instead</button></>
             )}
           </p>
         </div>

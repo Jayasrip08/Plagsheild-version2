@@ -280,9 +280,6 @@ export default function StudentPortal({ user, setUser }) {
           ondismiss: () => {
             if (!checkoutCompleted) {
               toast.warn('Payment cancelled. You can retry anytime from this page.');
-              setTimeout(() => {
-                window.location.reload();
-              }, 1500);
             }
           },
         },

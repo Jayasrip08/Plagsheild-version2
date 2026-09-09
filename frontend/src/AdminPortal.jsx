@@ -151,14 +151,13 @@ export default function AdminPortal({ user }) {
   const fetchHistory = async (query = historySearch.trim()) => {
     setLoadingHistory(true);
     try {
-      const params = { status: 'Report Ready' };
+      const params = {};
       if (query) params.search = query;
       const res = await api.get('orders/', { params });
-      const completedList = Array.isArray(res.data) ? res.data.filter(o => o.status === 'Report Ready') : [];
-      setHistoryOrders(completedList);
+      setHistoryOrders(res.data);
       setSelectedHistoryOrder(null);
     } catch (e) {
-      console.error("Failed to load completed order history", e);
+      console.error("Failed to load order history", e);
     } finally {
       setLoadingHistory(false);
     }
@@ -293,6 +292,22 @@ export default function AdminPortal({ user }) {
     } catch (e) {
       console.error("Failed to toggle block status", e);
       alert("Cannot block superadmin user.");
+    }
+  };
+
+  const handleDeleteUser = async (userId, userLabel) => {
+    const confirmDelete = window.confirm(
+      `Are you sure you want to permanently delete user #${userId} (${userLabel})?\n\nThis will remove this user account from the system.`
+    );
+    if (!confirmDelete) return;
+
+    try {
+      const res = await api.delete(`accounts/super/users/${userId}/delete/`);
+      alert(res.data.message || "User deleted successfully.");
+      fetchUsers(searchUser);
+    } catch (e) {
+      console.error("Failed to delete user", e);
+      alert(e.response?.data?.error || "Failed to delete user.");
     }
   };
 
@@ -533,7 +548,6 @@ export default function AdminPortal({ user }) {
                       <th>Manuscript</th>
                       <th>Author</th>
                       <th>Payment</th>
-                      <th>Amount</th>
                       <th>Status</th>
                       <th>Document</th>
                       <th>Actions</th>
@@ -574,9 +588,6 @@ export default function AdminPortal({ user }) {
                         <td className="cell-stack">
                           <strong>{paymentStatusLabel(order)}</strong>
                           <span className="mono-id">{pay?.razorpay_payment_id || pay?.razorpay_order_id || '—'}</span>
-                        </td>
-                        <td style={{ fontWeight: '600' }}>
-                          ₹{parseFloat(order.price || 0).toFixed(2)}
                         </td>
                         <td>
                           <span className={`badge badge-${order.status.toLowerCase().replace(' ', '-')}`}>
@@ -942,13 +953,31 @@ export default function AdminPortal({ user }) {
                         </td>
                         <td>
                           {u.role !== 'super_admin' ? (
-                            <button 
-                              className={`btn ${u.is_active ? 'btn-danger' : 'btn-accent'}`} 
-                              style={{ padding: '6px 12px', fontSize: '12px', color: u.is_active ? '#fff' : 'var(--bg-primary)' }}
-                              onClick={() => handleToggleUserBlock(u.id)}
-                            >
-                              {u.is_active ? 'Block Account' : 'Unblock Account'}
-                            </button>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                              <button 
+                                className={`btn ${u.is_active ? 'btn-danger' : 'btn-accent'}`} 
+                                style={{ padding: '6px 12px', fontSize: '12px', color: u.is_active ? '#fff' : 'var(--bg-primary)' }}
+                                onClick={() => handleToggleUserBlock(u.id)}
+                              >
+                                {u.is_active ? 'Block Account' : 'Unblock Account'}
+                              </button>
+                              <button 
+                                className="btn"
+                                style={{ 
+                                  padding: '6px 10px', 
+                                  fontSize: '12px', 
+                                  background: 'rgba(239, 68, 68, 0.15)', 
+                                  color: '#ef4444', 
+                                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                                  cursor: 'pointer',
+                                  borderRadius: '6px'
+                                }}
+                                title="Delete user"
+                                onClick={() => handleDeleteUser(u.id, u.email || u.username)}
+                              >
+                                Delete
+                              </button>
+                            </div>
                           ) : (
                             <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>System Administrator</span>
                           )}

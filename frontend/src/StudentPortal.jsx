@@ -376,7 +376,7 @@ export default function StudentPortal({ user, setUser }) {
   const documentName = (order) => {
     if (order.paper_title) return order.paper_title;
     if (!order.document) return 'Manuscript';
-    return order.document.split('/').pop();
+    return order.document.split('?')[0].split('/').pop();
   };
 
   return (

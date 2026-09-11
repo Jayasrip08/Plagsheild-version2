@@ -578,7 +578,7 @@ export default function AdminPortal({ user }) {
                         </td>
                         <td>#{order.id}</td>
                         <td className="cell-stack">
-                          <strong>{order.paper_title || order.document?.split('/').pop()}</strong>
+                          <strong>{order.paper_title || order.document?.split('?')[0].split('/').pop()}</strong>
                           <span>{order.user_details?.username} · {order.user_details?.email}</span>
                         </td>
                         <td className="cell-stack">
@@ -599,17 +599,56 @@ export default function AdminPortal({ user }) {
                             className="btn btn-secondary"
                             style={{ padding: '6px 12px', fontSize: '12px' }}
                             onClick={async () => {
+                              const docUrl = order.document;
+                              if (!docUrl) {
+                                alert('No document attached to this order.');
+                                return;
+                              }
+
+                              const cleanFileName = (docUrl.split('?')[0].split('/').pop()) || 'manuscript.docx';
+
                               try {
-                                const response = await api.get(order.document, { responseType: 'blob' });
+                                if (docUrl.startsWith('http://') || docUrl.startsWith('https://')) {
+                                  // Fetch directly without Django Authorization header so Supabase S3 doesn't reject it
+                                  const resp = await fetch(docUrl);
+                                  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                                  const blob = await resp.blob();
+                                  const blobUrl = window.URL.createObjectURL(blob);
+                                  const link = document.createElement('a');
+                                  link.href = blobUrl;
+                                  link.setAttribute('download', cleanFileName);
+                                  document.body.appendChild(link);
+                                  link.click();
+                                  link.remove();
+                                  window.URL.revokeObjectURL(blobUrl);
+                                  return;
+                                }
+
+                                const response = await api.get(docUrl, { responseType: 'blob' });
                                 const url = window.URL.createObjectURL(new Blob([response.data]));
                                 const link = document.createElement('a');
                                 link.href = url;
-                                link.setAttribute('download', order.document.split('/').pop());
+                                link.setAttribute('download', cleanFileName);
                                 document.body.appendChild(link);
                                 link.click();
                                 link.remove();
+                                window.URL.revokeObjectURL(url);
                               } catch (err) {
-                                window.open(order.document, '_blank');
+                                console.warn('Direct download failed, trying server endpoint fallback...', err);
+                                try {
+                                  const res = await api.get(`orders/${order.id}/download-document/`, { responseType: 'blob' });
+                                  const url = window.URL.createObjectURL(new Blob([res.data]));
+                                  const link = document.createElement('a');
+                                  link.href = url;
+                                  link.setAttribute('download', cleanFileName);
+                                  document.body.appendChild(link);
+                                  link.click();
+                                  link.remove();
+                                  window.URL.revokeObjectURL(url);
+                                } catch (fallbackErr) {
+                                  console.error('All download methods failed:', fallbackErr);
+                                  alert('This document was submitted prior to cloud storage setup and was deleted when the server restarted. Please test with a newly submitted order.');
+                                }
                               }
                             }}
                           >
@@ -701,7 +740,7 @@ export default function AdminPortal({ user }) {
                       >
                         <td>#{order.id}</td>
                         <td className="cell-stack">
-                          <strong>{order.paper_title || order.document?.split('/').pop() || 'N/A'}</strong>
+                          <strong>{order.paper_title || order.document?.split('?')[0].split('/').pop() || 'N/A'}</strong>
                           <span>{order.user_details?.username || order.user} · {order.package_label || 'Check'}</span>
                         </td>
                         <td className="cell-stack">
@@ -1142,7 +1181,7 @@ export default function AdminPortal({ user }) {
             <form onSubmit={handleCompleteOrderSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px', flex: 1, justifyContent: 'space-between' }}>
               
               <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                File: <strong style={{ color: 'var(--text-main)' }}>{selectedOrder.document.split('/').pop()}</strong>
+                File: <strong style={{ color: 'var(--text-main)' }}>{selectedOrder.document?.split('?')[0].split('/').pop()}</strong>
               </div>
 
               {/* Similarity Score */}

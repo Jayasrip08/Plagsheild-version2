@@ -5,6 +5,7 @@ from .views import (
     OrderDetailView,
     AddEditingSuggestionsView,
     DownloadReportView,
+    DownloadDocumentView,
     OrderInvoiceView,
     SuperAdminOrderQueueView,
     SuperAdminUpdateOrderView,
@@ -17,6 +18,7 @@ urlpatterns = [
     path('<int:pk>/', OrderDetailView.as_view(), name='order_detail'),
     path('<int:pk>/add-editing-suggestions/', AddEditingSuggestionsView.as_view(), name='add_editing_suggestions'),
     path('<int:pk>/download-report/', DownloadReportView.as_view(), name='download_report'),
+    path('<int:pk>/download-document/', DownloadDocumentView.as_view(), name='download_document'),
     path('<int:pk>/invoice/', OrderInvoiceView.as_view(), name='order_invoice'),
     
     # Super Admin routes

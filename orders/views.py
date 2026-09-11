@@ -5,7 +5,7 @@ import os
 from django.utils import timezone
 from django.core.signing import TimestampSigner, SignatureExpired, BadSignature
 from django.core.mail import send_mail
-from django.http import FileResponse, HttpResponse
+from django.http import FileResponse, HttpResponse, HttpResponseRedirect
 from django.db.models import Q
 from django.conf import settings
 from rest_framework import status, permissions, generics
@@ -353,12 +353,56 @@ class DownloadReportView(APIView):
         if not order.report_file:
             return Response({"error": "Report file has not been uploaded yet"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Serve file response
-        file_path = order.report_file.path
-        if not os.path.exists(file_path):
-            return Response({"error": "Report file not found on server storage"}, status=status.HTTP_404_NOT_FOUND)
+        # S3 / Supabase Storage support: redirect directly to URL if available
+        try:
+            url = order.report_file.url
+            if url.startswith('http://') or url.startswith('https://'):
+                return HttpResponseRedirect(url)
+        except Exception:
+            pass
 
-        return FileResponse(open(file_path, 'rb'), content_type='application/pdf')
+        # Fallback to streaming file from storage
+        try:
+            file_obj = order.report_file.open('rb')
+            return FileResponse(file_obj, content_type='application/pdf')
+        except Exception as e:
+            return Response({"error": f"Report file not found on storage: {str(e)}"}, status=status.HTTP_404_NOT_FOUND)
+
+
+class DownloadDocumentView(APIView):
+    """
+    Securely download original submitted document for Super Admins, College Admins, or Owner.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, pk):
+        try:
+            order = Order.objects.get(pk=pk)
+        except Order.DoesNotExist:
+            return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        user = request.user
+        if not (user.role == 'super_admin' or order.user == user or (user.role == 'college_admin' and user.college == order.college)):
+            return Response({"error": "You do not have permission to download this document."}, status=status.HTTP_403_FORBIDDEN)
+
+        if not order.document:
+            return Response({"error": "No document associated with this order."}, status=status.HTTP_404_NOT_FOUND)
+
+        # S3 / Supabase Storage: redirect directly to signed download URL
+        try:
+            url = order.document.url
+            if url.startswith('http://') or url.startswith('https://'):
+                return HttpResponseRedirect(url)
+        except Exception:
+            pass
+
+        # Local fallback
+        try:
+            file_obj = order.document.open('rb')
+            filename = os.path.basename(order.document.name)
+            return FileResponse(file_obj, as_attachment=True, filename=filename)
+        except Exception as e:
+            return Response({"error": f"Document file not found on storage: {str(e)}"}, status=status.HTTP_404_NOT_FOUND)
 
 
 class OrderInvoiceView(APIView):

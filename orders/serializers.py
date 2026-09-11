@@ -37,6 +37,7 @@ class OrderSerializer(serializers.ModelSerializer):
     college_name = serializers.CharField(source='college.college_name', read_only=True)
     is_expired = serializers.SerializerMethodField()
     secure_download_url = serializers.SerializerMethodField()
+    report_documents = serializers.SerializerMethodField()
     package_label = serializers.SerializerMethodField()
     payment = serializers.SerializerMethodField()
 
@@ -48,6 +49,7 @@ class OrderSerializer(serializers.ModelSerializer):
             'user_details',
             'document',
             'report_file',
+            'report_documents',
             'word_count',
             'price',
             'similarity_score',
@@ -107,3 +109,60 @@ class OrderSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(f"/api/orders/{obj.id}/download-report/?token={token}")
             return f"/api/orders/{obj.id}/download-report/?token={token}"
         return None
+
+    def get_report_documents(self, obj):
+        import os
+        from django.core.signing import TimestampSigner
+        signer = TimestampSigner()
+        request = self.context.get('request')
+        items = []
+
+        # From OrderReportFile
+        reports = obj.report_documents.all()
+        for r in reports:
+            token = signer.sign(f"{obj.id}:{r.id}")
+            if request:
+                dl_url = request.build_absolute_uri(f"/api/orders/{obj.id}/download-report/{r.id}/?token={token}")
+            else:
+                dl_url = f"/api/orders/{obj.id}/download-report/{r.id}/?token={token}"
+
+            direct_url = None
+            try:
+                if hasattr(r.file, 'url'):
+                    direct_url = r.file.url
+            except Exception:
+                pass
+
+            file_name = r.name or (os.path.basename(r.file.name) if r.file else f"Report #{r.id}")
+            file_name = file_name.split('?')[0]
+
+            items.append({
+                'id': r.id,
+                'name': file_name,
+                'download_url': dl_url,
+                'direct_url': direct_url,
+            })
+
+        # Backwards compatibility: if no OrderReportFile but legacy report_file exists
+        if not items and obj.report_file:
+            token = signer.sign(str(obj.id))
+            if request:
+                dl_url = request.build_absolute_uri(f"/api/orders/{obj.id}/download-report/?token={token}")
+            else:
+                dl_url = f"/api/orders/{obj.id}/download-report/?token={token}"
+
+            direct_url = None
+            try:
+                if hasattr(obj.report_file, 'url'):
+                    direct_url = obj.report_file.url
+            except Exception:
+                pass
+
+            items.append({
+                'id': 0,
+                'name': os.path.basename(obj.report_file.name).split('?')[0],
+                'download_url': dl_url,
+                'direct_url': direct_url,
+            })
+
+        return items

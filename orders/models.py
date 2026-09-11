@@ -100,6 +100,23 @@ class Order(models.Model):
         return f"Order #{self.id} - {self.user.username} - {self.status}"
 
 
+class OrderReportFile(models.Model):
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        related_name='report_documents'
+    )
+    file = models.FileField(upload_to='reports/')
+    name = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['id']
+
+    def __str__(self):
+        return f"{self.name or self.file.name} for Order #{self.order_id}"
+
+
 class PricingConfig(models.Model):
     per_word_rate = models.DecimalField(
         max_digits=6,

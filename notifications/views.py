@@ -59,5 +59,6 @@ class SupportTicketStatusView(APIView):
         if next_status not in allowed:
             return Response({'error': 'Invalid status.'}, status=status.HTTP_400_BAD_REQUEST)
         ticket.status = next_status
+        ticket.save(update_fields=['status', 'updated_at'])
         ticket = SupportTicket.objects.select_related('order', 'user').get(pk=ticket.pk)
         return Response(SupportTicketSerializer(ticket, context={'request': request}).data)

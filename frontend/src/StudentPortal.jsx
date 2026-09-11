@@ -10,6 +10,9 @@ import {
   PanelLeftOpen,
   Shield,
   ScanLine,
+  FileText,
+  X,
+  Download,
 } from 'lucide-react';
 import api, { logout } from './api';
 import ProfilePage from './ProfilePage';
@@ -114,6 +117,7 @@ export default function StudentPortal({ user, setUser }) {
     }
   };
   const [selectedRecord, setSelectedRecord] = useState(null);
+  const [downloadModalOrder, setDownloadModalOrder] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     try {
       return window.localStorage.getItem('novelcheckr-sidebar-open') !== 'false';
@@ -547,9 +551,18 @@ export default function StudentPortal({ user, setUser }) {
                             {o.status === 'Report Ready' && (
                               o.is_expired ? (
                                 <span style={{ color: 'var(--danger)', fontSize: '11px', alignSelf: 'center' }}>Link Expired</span>
+                              ) : o.report_documents && o.report_documents.length > 1 ? (
+                                <button
+                                  type="button"
+                                  className="btn btn-accent"
+                                  style={{ padding: '6px 12px', fontSize: '12px', color: '#ffffff' }}
+                                  onClick={() => setDownloadModalOrder(o)}
+                                >
+                                  Download ({o.report_documents.length})
+                                </button>
                               ) : (
                                 <a
-                                  href={o.secure_download_url}
+                                  href={o.report_documents?.[0]?.download_url || o.secure_download_url}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="btn btn-accent"
@@ -649,24 +662,66 @@ export default function StudentPortal({ user, setUser }) {
                     This report download link has expired (48-hour validity).
                   </p>
                 ) : (
-                  <div className="report-actions">
-                    <a
-                      href={trackedOrder.secure_download_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-primary"
-                    >
-                      View Detailed Report
-                    </a>
-                    <a
-                      href={trackedOrder.secure_download_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-secondary"
-                      download
-                    >
-                      Download Report
-                    </a>
+                  <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                    {trackedOrder.report_documents && trackedOrder.report_documents.length > 0 ? (
+                      <div style={{ width: '100%', maxWidth: '520px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-main)', textAlign: 'left' }}>
+                          Verified Documents &amp; Reports ({trackedOrder.report_documents.length}):
+                        </div>
+                        {trackedOrder.report_documents.map((doc, idx) => (
+                          <div
+                            key={idx}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '12px 16px',
+                              background: '#ffffff',
+                              border: '1px solid var(--border-color)',
+                              borderRadius: '8px',
+                              boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' }}>
+                              <FileText size={18} color="var(--primary)" style={{ flexShrink: 0 }} />
+                              <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {doc.name}
+                              </span>
+                            </div>
+                            <a
+                              href={doc.download_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="btn btn-primary"
+                              style={{ padding: '6px 14px', fontSize: '12px', whiteSpace: 'nowrap' }}
+                              download
+                            >
+                              Download
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="report-actions">
+                        <a
+                          href={trackedOrder.secure_download_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-primary"
+                        >
+                          View Detailed Report
+                        </a>
+                        <a
+                          href={trackedOrder.secure_download_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-secondary"
+                          download
+                        >
+                          Download Report
+                        </a>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -675,6 +730,74 @@ export default function StudentPortal({ user, setUser }) {
         )}
       </main>
       </div>
+
+      {/* MULTIPLE REPORTS DOWNLOAD MODAL */}
+      {downloadModalOrder && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '520px', width: '90%', padding: '30px', borderRadius: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid var(--border-color)' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0, color: 'var(--text-main)' }}>
+                Verified Documents (#{downloadModalOrder.id})
+              </h3>
+              <button
+                type="button"
+                onClick={() => setDownloadModalOrder(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+              The administrator has uploaded {downloadModalOrder.report_documents?.length || 1} verification report(s) for your manuscript:
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '280px', overflowY: 'auto' }}>
+              {(downloadModalOrder.report_documents || []).map((doc, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '12px 16px',
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' }}>
+                    <FileText size={18} color="var(--primary)" style={{ flexShrink: 0 }} />
+                    <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {doc.name}
+                    </span>
+                  </div>
+                  <a
+                    href={doc.download_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-primary"
+                    style={{ padding: '6px 14px', fontSize: '12px', whiteSpace: 'nowrap' }}
+                    download
+                  >
+                    Download
+                  </a>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setDownloadModalOrder(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

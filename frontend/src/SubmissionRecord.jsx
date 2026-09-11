@@ -90,6 +90,26 @@ export default function SubmissionRecord({ order, variant = 'student' }) {
           <div><dt>Paid at</dt><dd>{when(pay?.paid_at)}</dd></div>
         </dl>
       </section>
+      {order.report_documents && order.report_documents.length > 0 && (
+        <section style={{ gridColumn: '1 / -1' }}>
+          <h4>Verified Reports &amp; Documents ({order.report_documents.length})</h4>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '10px' }}>
+            {order.report_documents.map((doc, idx) => (
+              <a
+                key={idx}
+                href={doc.download_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                download
+                className="btn btn-secondary"
+                style={{ fontSize: '12px', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                📄 {doc.name} (Download)
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

@@ -12,7 +12,7 @@ from rest_framework import status, permissions, generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from .models import Order, PricingConfig
+from .models import Order, OrderReportFile, PricingConfig
 from .serializers import OrderSerializer, PricingConfigSerializer
 from .pricing import default_pricing_kwargs, gst_breakdown, package_catalog, PACKAGE_LABELS, resolve_package
 from accounts.models import User
@@ -323,7 +323,7 @@ class AddEditingSuggestionsView(APIView):
 class DownloadReportView(APIView):
     permission_classes = [permissions.AllowAny] # Anyone with the secure signed URL can download
 
-    def get(self, request, pk):
+    def get(self, request, pk, report_id=None):
         try:
             order = Order.objects.get(pk=pk)
         except Order.DoesNotExist:
@@ -334,10 +334,16 @@ class DownloadReportView(APIView):
             return Response({"error": "Secure download token is missing"}, status=status.HTTP_400_BAD_REQUEST)
 
         # Verify Signature & Age
+        unsign_report_id = None
         try:
             # Max age of 48 hours (48 * 3600 = 172800 seconds)
-            unsigned_id = signer.unsign(token, max_age=172800)
-            if int(unsigned_id) != order.id:
+            unsigned_data = signer.unsign(token, max_age=172800)
+            if ':' in unsigned_data:
+                unsigned_order_id, unsign_report_id = unsigned_data.split(':', 1)
+            else:
+                unsigned_order_id = unsigned_data
+
+            if int(unsigned_order_id) != order.id:
                 return Response({"error": "Invalid token signature"}, status=status.HTTP_400_BAD_REQUEST)
         except SignatureExpired:
             return Response({"error": "This report link has expired (valid for 48 hours only)"}, status=status.HTTP_400_BAD_REQUEST)
@@ -350,12 +356,32 @@ class DownloadReportView(APIView):
             if delta.total_seconds() > 172800:
                 return Response({"error": "Report download window of 48 hours has expired"}, status=status.HTTP_400_BAD_REQUEST)
 
-        if not order.report_file:
+        target_file = None
+        target_name = None
+
+        chosen_id = report_id or unsign_report_id or request.query_params.get('report_id')
+        if chosen_id and str(chosen_id) != '0':
+            report_doc = order.report_documents.filter(id=chosen_id).first()
+            if report_doc and report_doc.file:
+                target_file = report_doc.file
+                target_name = report_doc.name or os.path.basename(report_doc.file.name)
+
+        if not target_file:
+            if order.report_file:
+                target_file = order.report_file
+                target_name = os.path.basename(order.report_file.name)
+            else:
+                first_doc = order.report_documents.first()
+                if first_doc and first_doc.file:
+                    target_file = first_doc.file
+                    target_name = first_doc.name or os.path.basename(first_doc.file.name)
+
+        if not target_file:
             return Response({"error": "Report file has not been uploaded yet"}, status=status.HTTP_400_BAD_REQUEST)
 
         # S3 / Supabase Storage support: redirect directly to URL if available
         try:
-            url = order.report_file.url
+            url = target_file.url
             if url.startswith('http://') or url.startswith('https://'):
                 return HttpResponseRedirect(url)
         except Exception:
@@ -363,8 +389,10 @@ class DownloadReportView(APIView):
 
         # Fallback to streaming file from storage
         try:
-            file_obj = order.report_file.open('rb')
-            return FileResponse(file_obj, content_type='application/pdf')
+            file_obj = target_file.open('rb')
+            filename = (target_name or 'report.pdf').split('?')[0]
+            content_type = 'application/pdf' if filename.lower().endswith('.pdf') else 'application/octet-stream'
+            return FileResponse(file_obj, content_type=content_type, as_attachment=True, filename=filename)
         except Exception as e:
             return Response({"error": f"Report file not found on storage: {str(e)}"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -691,12 +719,16 @@ class SuperAdminUpdateOrderView(APIView):
             
         elif action == 'complete':
             similarity_score = request.data.get('similarity_score')
-            report_file = request.FILES.get('report_file')
+            report_files = request.FILES.getlist('report_files')
+            if not report_files:
+                single_report = request.FILES.get('report_file')
+                if single_report:
+                    report_files = [single_report]
             
             if similarity_score is None:
                 return Response({"error": "Similarity score is required"}, status=status.HTTP_400_BAD_REQUEST)
-            if not report_file:
-                return Response({"error": "Report PDF file is required"}, status=status.HTTP_400_BAD_REQUEST)
+            if not report_files:
+                return Response({"error": "At least one report or verification document is required"}, status=status.HTTP_400_BAD_REQUEST)
 
             try:
                 similarity_score = float(similarity_score)
@@ -704,10 +736,19 @@ class SuperAdminUpdateOrderView(APIView):
                 return Response({"error": "Similarity score must be a number"}, status=status.HTTP_400_BAD_REQUEST)
 
             order.similarity_score = similarity_score
-            order.report_file = report_file
+            order.report_file = report_files[0]
             order.status = 'Report Ready'
             order.report_uploaded_at = timezone.now()
             order.save()
+
+            # Save each report document to OrderReportFile
+            for f in report_files:
+                clean_name = getattr(f, 'name', 'Report')
+                OrderReportFile.objects.create(
+                    order=order,
+                    file=f,
+                    name=clean_name
+                )
 
             try:
                 from services.firestore_service import save_order_to_firestore

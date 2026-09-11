@@ -46,7 +46,7 @@ export default function AdminPortal({ user }) {
   const [queue, setQueue] = useState([]);
   const [loadingQueue, setLoadingQueue] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [completeForm, setCompleteForm] = useState({ similarity_score: '', report_file: null });
+  const [completeForm, setCompleteForm] = useState({ similarity_score: '', report_files: [] });
   const [updatingOrder, setUpdatingOrder] = useState(false);
 
   // College management
@@ -204,23 +204,33 @@ export default function AdminPortal({ user }) {
 
   const handleCompleteOrderSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedOrder || !completeForm.report_file) return;
+    const files = completeForm.report_files || [];
+    if (!selectedOrder || files.length === 0) {
+      alert("Please select at least one verified report document to upload.");
+      return;
+    }
     setUpdatingOrder(true);
 
     const formData = new FormData();
     formData.append('action', 'complete');
     formData.append('similarity_score', completeForm.similarity_score);
-    formData.append('report_file', completeForm.report_file);
+    // Append each document to report_files
+    files.forEach((file) => {
+      formData.append('report_files', file);
+    });
+    // For legacy backend compatibility
+    formData.append('report_file', files[0]);
 
     try {
       await api.post(`orders/super/${selectedOrder.id}/update/`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      alert(`Order #${selectedOrder.id} completed. Notifications sent successfully.`);
+      alert(`Order #${selectedOrder.id} completed with ${files.length} document(s). Notifications sent successfully.`);
       setSelectedOrder(null);
-      setCompleteForm({ similarity_score: '', report_file: null });
+      setCompleteForm({ similarity_score: '', report_files: [] });
       fetchQueue();
       fetchStats();
+      fetchHistory();
     } catch (e) {
       console.error("Failed to complete check", e);
       alert("Error completing check. Check values.");
@@ -548,6 +558,7 @@ export default function AdminPortal({ user }) {
                       <th>Manuscript</th>
                       <th>Author</th>
                       <th>Payment</th>
+                      <th>Amount</th>
                       <th>Status</th>
                       <th>Document</th>
                       <th>Actions</th>
@@ -588,6 +599,11 @@ export default function AdminPortal({ user }) {
                         <td className="cell-stack">
                           <strong>{paymentStatusLabel(order)}</strong>
                           <span className="mono-id">{pay?.razorpay_payment_id || pay?.razorpay_order_id || '—'}</span>
+                        </td>
+                        <td>
+                          <strong style={{ color: 'var(--text-main)', fontSize: '13px' }}>
+                            ₹{parseFloat(pay?.amount || order.price || 0).toFixed(2)}
+                          </strong>
                         </td>
                         <td>
                           <span className={`badge badge-${order.status.toLowerCase().replace(' ', '-')}`}>
@@ -1199,42 +1215,110 @@ export default function AdminPortal({ user }) {
                 />
               </div>
 
-              {/* Upload Report PDF Input */}
+              {/* Upload Multiple Report Documents */}
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Verified PDF Report</label>
-                <div 
-                  className="dropzone"
-                  style={{ padding: '24px 16px', backgroundColor: completeForm.report_file ? '#f0f9ff' : '#ffffff', borderColor: completeForm.report_file ? 'var(--primary)' : 'var(--border-color)', borderRadius: '8px' }}
-                  onClick={() => document.getElementById('admin-report-pdf-input').click()}
-                >
-                  <input 
-                    id="admin-report-pdf-input"
-                    type="file" 
-                    accept=".pdf" 
-                    style={{ display: 'none' }}
-                    onChange={(e) => setCompleteForm({ ...completeForm, report_file: e.target.files[0] })}
-                  />
-                  <Upload size={24} color="var(--primary)" style={{ marginBottom: '8px' }} />
-                  {completeForm.report_file ? (
-                    <div>
-                      <div style={{ color: 'var(--primary)', fontWeight: 'bold', fontSize: '14px', marginBottom: '2px' }}>
-                        {completeForm.report_file.name}
-                      </div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                        {(completeForm.report_file.size / 1024).toFixed(1)} KB • Click to change file
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-main)', marginBottom: '2px' }}>
-                        Drag & Drop or Click to Upload
-                      </div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                        Supports PDF report formats (Max 20MB)
-                      </div>
-                    </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <label className="form-label" style={{ marginBottom: 0 }}>
+                    Verified Report Documents {completeForm.report_files.length > 0 && `(${completeForm.report_files.length})`}
+                  </label>
+                  {completeForm.report_files.length > 0 && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      style={{ padding: '3px 8px', fontSize: '11px' }}
+                      onClick={() => document.getElementById('admin-report-pdf-input').click()}
+                    >
+                      + Add More Files
+                    </button>
                   )}
                 </div>
+
+                <input 
+                  id="admin-report-pdf-input"
+                  type="file" 
+                  multiple
+                  accept=".pdf,.doc,.docx" 
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const newFiles = Array.from(e.target.files || []);
+                    if (newFiles.length > 0) {
+                      setCompleteForm((prev) => ({
+                        ...prev,
+                        report_files: [...prev.report_files, ...newFiles]
+                      }));
+                    }
+                    e.target.value = '';
+                  }}
+                />
+
+                {completeForm.report_files.length === 0 ? (
+                  <div 
+                    className="dropzone"
+                    style={{ padding: '24px 16px', backgroundColor: '#ffffff', borderColor: 'var(--border-color)', borderRadius: '8px', cursor: 'pointer' }}
+                    onClick={() => document.getElementById('admin-report-pdf-input').click()}
+                  >
+                    <Upload size={24} color="var(--primary)" style={{ marginBottom: '8px' }} />
+                    <div>
+                      <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-main)', marginBottom: '2px' }}>
+                        Drag &amp; Drop or Click to Upload Documents
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                        Select one or multiple files: Similarity Report, Certificate, AI Scan (.pdf, .doc, .docx)
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '180px', overflowY: 'auto', paddingRight: '4px' }}>
+                    {completeForm.report_files.map((file, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '8px 12px',
+                          background: '#f8fafc',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '6px'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                          <FileText size={16} color="var(--primary)" style={{ flexShrink: 0 }} />
+                          <div style={{ overflow: 'hidden' }}>
+                            <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-main)', textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                              {file.name}
+                            </div>
+                            <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                              {(file.size / 1024).toFixed(1)} KB
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCompleteForm((prev) => ({
+                              ...prev,
+                              report_files: prev.report_files.filter((_, i) => i !== idx)
+                            }));
+                          }}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: 'var(--danger)',
+                            padding: '4px',
+                            display: 'flex',
+                            alignItems: 'center'
+                          }}
+                          title="Remove file"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '4px' }}>

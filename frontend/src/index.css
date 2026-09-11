@@ -2663,84 +2663,44 @@ select.form-control:focus {
 
 /* Sample Report Preview */
 .sample-report-stage {
-  --tilt-x: 7deg;
-  --tilt-y: -9deg;
-  --glare-x: 28%;
-  --glare-y: 18%;
-  max-width: 860px;
-  margin: 8px auto 0;
-  padding: 36px 28px 48px;
-  background:
-    radial-gradient(circle at var(--glare-x) var(--glare-y), rgba(255, 255, 255, 0.55), transparent 36%),
-    linear-gradient(180deg, #dbe4ee 0%, #c5d0dc 100%);
-  border-radius: 16px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
-  perspective: 1600px;
-  transform-style: preserve-3d;
+  max-width: 920px;
+  margin: 16px auto 0;
+  padding: 24px;
+  background: linear-gradient(180deg, #f8fafc 0%, #eef2f6 100%);
+  border: 1px solid #cbd5e1;
+  border-radius: 20px;
+  box-shadow: 0 16px 36px -12px rgba(15, 23, 42, 0.08);
 }
 
 .sample-report-scene {
   position: relative;
-  transform-style: preserve-3d;
-  transform: rotateX(var(--tilt-x)) rotateY(var(--tilt-y));
-  transition: transform 0.22s ease-out;
-}
-
-.sample-report-stage.is-tilting .sample-report-scene {
-  transition: transform 0.08s linear;
-}
-
-.sample-report-stage:not(.is-tilting) .sample-report-scene {
-  animation: reportFloat 5.6s ease-in-out infinite;
+  width: 100%;
 }
 
 .sample-report-layer {
-  position: absolute;
-  inset: 10px 14px -8px;
-  border-radius: 8px;
-  background: #f8fafc;
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
-  pointer-events: none;
-}
-
-.sample-report-layer.layer-back {
-  transform: translateZ(-48px) rotateX(8deg) translateY(18px);
-  opacity: 0.45;
-}
-
-.sample-report-layer.layer-mid {
-  transform: translateZ(-24px) rotateX(4deg) translateY(8px);
-  opacity: 0.7;
+  display: none !important;
 }
 
 .sample-report-paper {
   position: relative;
   background: #ffffff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
   box-shadow:
-    0 28px 60px rgba(15, 23, 42, 0.22),
-    0 2px 0 rgba(255, 255, 255, 0.7) inset;
-  padding: 0 28px 28px;
-  max-height: 680px;
-  overflow-y: auto;
+    0 12px 28px -8px rgba(15, 23, 42, 0.08),
+    0 1px 3px rgba(15, 23, 42, 0.04);
+  padding: 0 32px 32px;
+  max-height: none !important;
+  overflow: visible !important;
   color: #0f172a;
-  transform: translateZ(18px);
-  transform-style: preserve-3d;
 }
 
 .sample-report-paper::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 2;
-  background: radial-gradient(circle at var(--glare-x) var(--glare-y), rgba(255, 255, 255, 0.32), transparent 42%);
-  mix-blend-mode: soft-light;
+  display: none;
 }
 
 .sample-report-stage.is-live .sample-report-paper {
-  animation: reportEnter 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: reportEnter 0.5s ease-out;
 }
 
 .sample-report-watermark {
@@ -2766,10 +2726,12 @@ select.form-control:focus {
   display: flex;
   justify-content: space-between;
   gap: 16px;
-  margin: 0 -28px 22px;
-  padding: 16px 28px;
+  margin: 0 -32px 24px;
+  padding: 18px 32px;
   background: #0f172a;
   color: #ffffff;
+  border-top-left-radius: 13px;
+  border-top-right-radius: 13px;
 }
 
 .sample-report-bar strong {
@@ -2861,8 +2823,7 @@ select.form-control:focus {
   background: #f0fdf4;
   border: 1px solid #86efac;
   border-radius: 14px;
-  transform: translateZ(28px) rotateY(-6deg);
-  box-shadow: 0 12px 24px rgba(22, 101, 52, 0.12);
+  box-shadow: 0 6px 18px rgba(22, 101, 52, 0.08);
 }
 
 .sample-report-gauge {
@@ -2996,20 +2957,19 @@ select.form-control:focus {
 
 .sample-excerpt {
   margin: 0 0 10px;
-  padding: 10px 12px;
-  border-radius: 6px;
-  transform: translateZ(10px);
-  transition: transform 0.22s ease, box-shadow 0.22s ease;
+  padding: 12px 16px;
+  border-radius: 8px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .sample-excerpt:hover {
-  transform: translateY(-4px) translateZ(22px) rotateX(5deg);
-  box-shadow: 0 12px 22px rgba(15, 23, 42, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
 }
 
-.sample-report-stage.is-live .sample-excerpt.mark-1 { animation: excerptIn 0.55s ease 0.2s both; }
-.sample-report-stage.is-live .sample-excerpt.mark-2 { animation: excerptIn 0.55s ease 0.3s both; }
-.sample-report-stage.is-live .sample-excerpt.mark-3 { animation: excerptIn 0.55s ease 0.4s both; }
+.sample-report-stage.is-live .sample-excerpt.mark-1 { animation: excerptIn 0.4s ease 0.1s both; }
+.sample-report-stage.is-live .sample-excerpt.mark-2 { animation: excerptIn 0.4s ease 0.2s both; }
+.sample-report-stage.is-live .sample-excerpt.mark-3 { animation: excerptIn 0.4s ease 0.3s both; }
 
 .sample-excerpt figcaption {
   font-size: 11px;
@@ -3070,23 +3030,22 @@ select.form-control:focus {
 }
 
 @keyframes reportFloat {
-  0%, 100% { transform: rotateX(7deg) rotateY(-9deg) translateY(0); }
-  50% { transform: rotateX(4deg) rotateY(-5deg) translateY(-10px); }
+  0%, 100% { transform: none; }
 }
 
 @keyframes reportEnter {
-  from { transform: translateZ(-12px) rotateX(14deg); }
-  to { transform: translateZ(18px) rotateX(0deg); }
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes sourceRowIn {
-  from { transform: translateX(-10px); opacity: 0.55; }
+  from { transform: translateX(-8px); opacity: 0.6; }
   to { transform: none; opacity: 1; }
 }
 
 @keyframes excerptIn {
-  from { transform: rotateX(8deg) translateY(10px); opacity: 0.6; }
-  to { transform: translateZ(10px); opacity: 1; }
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .report-mock-wrap {

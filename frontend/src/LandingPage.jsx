@@ -201,8 +201,6 @@ export default function LandingPage({ onNavigateToAuth }) {
     const stage = reportStageRef.current;
     if (!stage) return undefined;
 
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const coarsePointer = window.matchMedia('(pointer: coarse)').matches;
     const io = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -210,37 +208,10 @@ export default function LandingPage({ onNavigateToAuth }) {
           io.disconnect();
         }
       },
-      { threshold: 0.2 }
+      { threshold: 0.15 }
     );
     io.observe(stage);
-
-    if (reduceMotion || coarsePointer) {
-      return () => io.disconnect();
-    }
-
-    const onMove = (event) => {
-      const rect = stage.getBoundingClientRect();
-      const x = (event.clientX - rect.left) / rect.width - 0.5;
-      const y = (event.clientY - rect.top) / rect.height - 0.5;
-      stage.style.setProperty('--tilt-x', `${(-y * 11).toFixed(2)}deg`);
-      stage.style.setProperty('--tilt-y', `${(x * 16).toFixed(2)}deg`);
-      stage.style.setProperty('--glare-x', `${50 + x * 46}%`);
-      stage.style.setProperty('--glare-y', `${32 + y * 40}%`);
-      stage.classList.add('is-tilting');
-    };
-    const onLeave = () => {
-      stage.style.setProperty('--tilt-x', '7deg');
-      stage.style.setProperty('--tilt-y', '-9deg');
-      stage.classList.remove('is-tilting');
-    };
-
-    stage.addEventListener('pointermove', onMove);
-    stage.addEventListener('pointerleave', onLeave);
-    return () => {
-      io.disconnect();
-      stage.removeEventListener('pointermove', onMove);
-      stage.removeEventListener('pointerleave', onLeave);
-    };
+    return () => io.disconnect();
   }, []);
 
   useEffect(() => {
@@ -512,8 +483,8 @@ export default function LandingPage({ onNavigateToAuth }) {
             <span className="section-kicker">See Before You Buy</span>
             <h2 className="section-title">A Real Similarity Report — Not a Marketing Card</h2>
             <p className="section-desc">
-              Scroll the sample below. This is the same layout you download after a paid check: overall index,
-              source-by-source matches, highlighted passages, and a digitally signed footer.
+              Preview the verified report below. This is the exact layout generated after each similarity audit: overall index,
+              source-by-source matches, highlighted passages, and a digitally signed verification badge.
             </p>
           </div>
 
@@ -522,8 +493,6 @@ export default function LandingPage({ onNavigateToAuth }) {
             ref={reportStageRef}
           >
             <div className="sample-report-scene">
-              <div className="sample-report-layer layer-back" aria-hidden="true" />
-              <div className="sample-report-layer layer-mid" aria-hidden="true" />
               <article
                 className="sample-report-paper"
                 aria-label="Sample NovelCheckr similarity report"

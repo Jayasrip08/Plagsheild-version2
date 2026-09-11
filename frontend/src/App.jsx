@@ -263,27 +263,11 @@ function App() {
           callback: handleGoogleCredentialResponse,
           ux_mode: 'popup',
           cancel_on_tap_outside: true,
-          use_fedcm_for_prompt: false,
+          auto_select: false,
         });
         isGoogleInitialized.current = true;
         setGoogleSdkLoaded(true);
         if (intervalId) clearInterval(intervalId);
-
-        // Render official Google button into container if present
-        setTimeout(() => {
-          const container = document.getElementById('google-btn-container');
-          if (container && window.google?.accounts?.id) {
-            container.innerHTML = '';
-            window.google.accounts.id.renderButton(container, {
-              theme: 'outline',
-              size: 'large',
-              width: '100%',
-              text: 'continue_with',
-              shape: 'rectangular',
-              logo_alignment: 'left',
-            });
-          }
-        }, 100);
 
         return true;
       } catch (err) {
@@ -405,6 +389,28 @@ function App() {
     }
   };
 
+  const renderGoogleButton = useCallback(() => {
+    const container = document.getElementById('google-btn-container');
+    if (container && window.google?.accounts?.id && googleClientId) {
+      container.innerHTML = '';
+      window.google.accounts.id.renderButton(container, {
+        theme: 'outline',
+        size: 'large',
+        width: '100%',
+        text: 'continue_with',
+        shape: 'rectangular',
+        logo_alignment: 'left',
+      });
+    }
+  }, [googleClientId]);
+
+  useEffect(() => {
+    if (googleSdkLoaded) {
+      const timer = setTimeout(renderGoogleButton, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [googleSdkLoaded, isLogin, renderGoogleButton]);
+
   const handleGoogleLogin = () => {
     setAuthError('');
     if (!googleClientId) {
@@ -419,20 +425,21 @@ function App() {
 
     googleRoleRef.current = 'b2c_student';
     
-    // Try Google One Tap prompt with fallback to rendered button iframe click
-    window.google.accounts.id.prompt((notification) => {
-      if (notification.isNotDisplayed() || notification.isSkippedMoment() || notification.isDismissedMoment()) {
-        const btnIframe = document.querySelector('#google-btn-container iframe') || document.querySelector('#google-btn-container div[role="button"]');
-        if (btnIframe) {
-          btnIframe.click();
-        }
-      }
-    });
-
-    // Also trigger iframe directly if available
+    // Trigger the official Google rendered iframe button if present
     const btnIframe = document.querySelector('#google-btn-container iframe') || document.querySelector('#google-btn-container div[role="button"]');
     if (btnIframe) {
       btnIframe.click();
+      return;
+    }
+
+    try {
+      window.google.accounts.id.prompt((notification) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          console.warn('Google One Tap not displayed:', notification.getNotDisplayedReason?.() || notification.getSkippedReason?.());
+        }
+      });
+    } catch (err) {
+      console.warn('Google prompt fallback skipped:', err);
     }
   };
 

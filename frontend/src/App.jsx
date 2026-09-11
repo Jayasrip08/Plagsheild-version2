@@ -144,6 +144,7 @@ function App() {
 
   const handleGoogleCredentialResponse = useCallback(async (credentialResponse) => {
     setAuthError('');
+    setSubmittingAuth(true);
 
     try {
       const payload = decodeGoogleJwt(credentialResponse.credential);
@@ -151,13 +152,42 @@ function App() {
         throw new Error('Unable to read Google account email.');
       }
 
-      setGoogleAuthPayload(payload);
-      setShowGooglePhoneModal(true);
+      const cleanEmail = payload.email.trim().toLowerCase();
+      const name = payload.name || payload.given_name || '';
+
+      // Check if user already exists or requires phone
+      const res = await googleLoginUser({
+        email: cleanEmail,
+        name: name,
+        mode: isLogin ? 'login' : 'register',
+        role: googleRoleRef.current || 'b2c_student',
+      });
+
+      if (res?.requires_phone) {
+        // NEW ACCOUNT: Prompt for phone number
+        setGoogleAuthPayload({
+          ...payload,
+          email: cleanEmail,
+          name: name,
+        });
+        setGoogleWhatsApp('');
+        setShowGooglePhoneModal(true);
+      } else if (res?.user && res?.access) {
+        // OLD ACCOUNT: Direct sign-in without asking for phone number!
+        setUser(res.user);
+        setShowGooglePhoneModal(false);
+        setGoogleWhatsApp('');
+        setGoogleAuthPayload(null);
+      } else {
+        throw new Error('Unexpected response during Google authentication.');
+      }
     } catch (e) {
       console.error('Google login failed', e);
       setAuthError(extractApiErrorMessage(e) || e.message || 'Google OAuth login failed.');
+    } finally {
+      setSubmittingAuth(false);
     }
-  }, []);
+  }, [isLogin]);
 
   const switchAuthMode = (toLogin) => {
     setIsLogin(toLogin);
@@ -174,7 +204,10 @@ function App() {
 
   const confirmGoogleLoginWithWhatsApp = async (e) => {
     e.preventDefault();
-    const cleanDigits = googleWhatsApp.replace(/\D/g, '');
+    let cleanDigits = googleWhatsApp.replace(/\D/g, '');
+    if (cleanDigits.length === 12 && cleanDigits.startsWith('91')) {
+      cleanDigits = cleanDigits.slice(2);
+    }
     if (cleanDigits.length !== 10) {
       setAuthError('Please enter a valid 10-digit WhatsApp mobile number.');
       return;
@@ -184,16 +217,25 @@ function App() {
     setAuthError('');
 
     try {
-      const loggedInUser = await googleLoginUser({
+      const res = await googleLoginUser({
         email: googleAuthPayload.email.trim().toLowerCase(),
         name: googleAuthPayload.name || googleAuthPayload.given_name || '',
         phone: `+91${cleanDigits}`,
         mode: isLogin ? 'login' : 'register',
+        role: googleRoleRef.current || 'b2c_student',
       });
 
-      setUser(loggedInUser);
-      setShowGooglePhoneModal(false);
-      setGoogleWhatsApp('');
+      if (res?.requires_phone) {
+        setAuthError(res.message || 'Phone number required.');
+        return;
+      }
+
+      if (res?.user && res?.access) {
+        setUser(res.user);
+        setShowGooglePhoneModal(false);
+        setGoogleWhatsApp('');
+        setGoogleAuthPayload(null);
+      }
     } catch (e) {
       console.error('Google login failed', e);
       setAuthError(extractApiErrorMessage(e) || e.message || 'Google OAuth login failed.');
@@ -854,15 +896,21 @@ function App() {
             <form onSubmit={confirmGoogleLoginWithWhatsApp}>
               <div className="form-group" style={{ marginBottom: '20px' }}>
                 <label className="form-label">WhatsApp Mobile Number</label>
-                <input
-                  type="tel"
-                  className="form-control"
-                  placeholder="+91 98765 43210"
-                  value={googleWhatsApp}
-                  onChange={(e) => setGoogleWhatsApp(e.target.value)}
-                  required
-                  autoFocus
-                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: '42px', borderRadius: '8px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--text-muted)', fontWeight: 600, fontSize: '13px', padding: '0 12px' }}>
+                    +91
+                  </span>
+                  <input
+                    type="tel"
+                    className="form-control"
+                    placeholder="10-digit mobile number"
+                    value={googleWhatsApp}
+                    onChange={(e) => setGoogleWhatsApp(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    required
+                    autoFocus
+                    style={{ flex: 1 }}
+                  />
+                </div>
               </div>
 
               <div style={{ display: 'flex', gap: '10px' }}>

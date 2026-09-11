@@ -151,10 +151,13 @@ export default function AdminPortal({ user }) {
   const fetchHistory = async (query = historySearch.trim()) => {
     setLoadingHistory(true);
     try {
-      const params = {};
+      const params = { status: 'Report Ready' };
       if (query) params.search = query;
       const res = await api.get('orders/', { params });
-      setHistoryOrders(res.data);
+      const completedOnly = (Array.isArray(res.data) ? res.data : []).filter(
+        o => o.status === 'Report Ready' || o.status === 'Completed'
+      );
+      setHistoryOrders(completedOnly);
       setSelectedHistoryOrder(null);
     } catch (e) {
       console.error("Failed to load order history", e);
@@ -766,7 +769,7 @@ export default function AdminPortal({ user }) {
                         <td className="mono-id">{pay?.razorpay_payment_id || '—'}</td>
                         <td className="mono-id">{pay?.transaction_id || '—'}</td>
                         <td>{paymentStatusLabel(order)}</td>
-                        <td>₹{parseFloat(order.price || 0).toFixed(2)}</td>
+                        <td>₹{parseFloat(pay?.amount || order.price || 0).toFixed(2)}</td>
                         <td>
                           <span className={`badge badge-${order.status.toLowerCase().replace(' ', '-')}`}>
                             {order.status}

@@ -63,11 +63,16 @@ export const loginUser = async (username, password) => {
 
 export const googleLoginUser = async (googleData) => {
   const response = await api.post('accounts/google-login/', googleData);
+  if (response.data?.requires_phone) {
+    return response.data;
+  }
   const { access, refresh, user } = response.data;
-  localStorage.setItem('access_token', access);
-  localStorage.setItem('refresh_token', refresh);
-  localStorage.setItem('user', JSON.stringify(user));
-  return user;
+  if (access && refresh && user) {
+    localStorage.setItem('access_token', access);
+    localStorage.setItem('refresh_token', refresh);
+    localStorage.setItem('user', JSON.stringify(user));
+  }
+  return response.data;
 };
 
 export const registerUser = async (registrationData) => {

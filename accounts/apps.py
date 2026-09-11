@@ -12,11 +12,6 @@ def create_default_superadmin(sender, **kwargs):
                 role='super_admin'
             )
             print("[SUCCESS] Auto-created default superadmin user 'admin' (password: Admin@innolift)")
-            try:
-                from services.firestore_service import save_user_to_firestore
-                save_user_to_firestore(admin)
-            except Exception as e:
-                print(f"Firestore Sync Warning (admin): {e}")
     except Exception as err:
         print(f"Error checking/creating default superadmin: {err}")
 

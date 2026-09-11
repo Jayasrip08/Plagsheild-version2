@@ -42,15 +42,17 @@ class GoogleLoginView(APIView):
         if mode not in ('login', 'register'):
             return Response({"error": "Invalid Google auth mode."}, status=status.HTTP_400_BAD_REQUEST)
 
-        username = email.split('@')[0]
+        clean_email = email.strip().lower()
+        username = clean_email.split('@')[0]
         base_username = username
         counter = 1
         user = None
+        is_new_user = False
 
         phone = request.data.get('phone')
         normalized_phone = None
         if phone:
-            clean_digits = re.sub(r'\D', '', phone)
+            clean_digits = re.sub(r'\D', '', str(phone))
             if len(clean_digits) == 10:
                 normalized_phone = f"+91{clean_digits}"
             elif len(clean_digits) == 12 and clean_digits.startswith('91'):
@@ -59,18 +61,28 @@ class GoogleLoginView(APIView):
                 return Response({"error": "Phone number must be a valid 10-digit mobile number."}, status=status.HTTP_400_BAD_REQUEST)
 
             # Enforce phone uniqueness across accounts
-            if User.objects.filter(phone=normalized_phone).exclude(email__iexact=email).exists():
+            if User.objects.filter(phone=normalized_phone).exclude(email__iexact=clean_email).exists():
                 return Response({"error": "This phone number is already registered with another account."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            user = User.objects.get(email__iexact=email)
-            if mode == 'register':
-                if user.role != role:
-                    return Response({"error": "This email is already registered with a different role. One email can only be used for one role."}, status=status.HTTP_400_BAD_REQUEST)
+            user = User.objects.get(email__iexact=clean_email)
+            if mode == 'register' and user.role != role:
+                return Response({"error": "This email is already registered with a different role. One email can only be used for one role."}, status=status.HTTP_400_BAD_REQUEST)
             if normalized_phone:
                 user.phone = normalized_phone
-                user.save()
+                user.save(update_fields=['phone'])
         except User.DoesNotExist:
+            # New account: Must prompt for phone number if not supplied
+            if not normalized_phone:
+                return Response({
+                    "requires_phone": True,
+                    "is_new_user": True,
+                    "email": clean_email,
+                    "name": name,
+                    "message": "Phone number is required for new registration."
+                }, status=status.HTTP_200_OK)
+
+            is_new_user = True
             while User.objects.filter(username=username).exists():
                 username = f"{base_username}_{counter}"
                 counter += 1
@@ -85,19 +97,13 @@ class GoogleLoginView(APIView):
 
             user = User.objects.create_user(
                 username=username,
-                email=email.strip().lower(),
+                email=clean_email,
                 first_name=name,
                 role=role,
-                phone=normalized_phone or '',
+                phone=normalized_phone,
                 college=college,
                 department=department,
             )
-
-        try:
-            from services.firestore_service import save_user_to_firestore
-            save_user_to_firestore(user)
-        except Exception as e:
-            print(f"Firestore Sync Error: {e}")
 
         if not user.is_active:
             return Response({"error": "Your account has been blocked by the administrator. Please contact support."}, status=status.HTTP_403_FORBIDDEN)
@@ -123,7 +129,9 @@ class GoogleLoginView(APIView):
                 'college_id': user.college.id if user.college else None,
                 'college_name': user.college.college_name if user.college else None,
                 'department': user.department
-            }
+            },
+            'requires_phone': False,
+            'is_new_user': is_new_user
         })
 
 

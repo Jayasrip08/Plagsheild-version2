@@ -122,9 +122,12 @@ class WordCountEstimateView(APIView):
 
 class OrderListCreateView(generics.ListCreateAPIView):
     serializer_class = OrderSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
+        if not user.is_authenticated:
+            return Order.objects.none()
         if user.role == 'super_admin':
             queryset = Order.objects.exclude(status='Pending Payment')
             search_query = self.request.query_params.get('search', '').strip()
@@ -144,7 +147,14 @@ class OrderListCreateView(generics.ListCreateAPIView):
                     search_filters |= Q(user__id=int(search_query)) | Q(id=int(search_query))
                 queryset = queryset.filter(search_filters)
             if status_query:
-                queryset = queryset.filter(status__iexact=status_query)
+                if status_query.lower() in ['completed', 'report ready']:
+                    queryset = queryset.filter(status='Report Ready')
+                elif status_query.lower() != 'all':
+                    queryset = queryset.filter(status__iexact=status_query)
+            else:
+                # Default for superadmin order history: only show completed (Report Ready) orders.
+                # Orders in queue ('Submitted'/'Processing') show in queue; once completed, then only they show in history.
+                queryset = queryset.filter(status='Report Ready')
             return queryset.select_related('user', 'college', 'payment').order_by('-created_at')
         elif user.role == 'college_admin':
             # Submissions for all students in this college
@@ -251,12 +261,6 @@ class OrderListCreateView(generics.ListCreateAPIView):
                 **meta,
             )
 
-            try:
-                from services.firestore_service import save_order_to_firestore
-                save_order_to_firestore(order)
-            except Exception as e:
-                print(f"Firestore Order Sync Error: {e}")
-
             serializer = OrderSerializer(order)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
             
@@ -274,12 +278,6 @@ class OrderListCreateView(generics.ListCreateAPIView):
                 is_b2b=False,
                 **meta,
             )
-
-            try:
-                from services.firestore_service import save_order_to_firestore
-                save_order_to_firestore(order)
-            except Exception as e:
-                print(f"Firestore Order Sync Error: {e}")
 
             serializer = OrderSerializer(order)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -707,11 +705,6 @@ class SuperAdminUpdateOrderView(APIView):
         if action == 'start_processing':
             order.status = 'Processing'
             order.save()
-            try:
-                from services.firestore_service import save_order_to_firestore
-                save_order_to_firestore(order)
-            except Exception as e:
-                print(f"Firestore Order Sync Error: {e}")
             return Response({
                 "message": "Order marked as Processing",
                 "status": order.status
@@ -749,12 +742,6 @@ class SuperAdminUpdateOrderView(APIView):
                     file=f,
                     name=clean_name
                 )
-
-            try:
-                from services.firestore_service import save_order_to_firestore
-                save_order_to_firestore(order)
-            except Exception as e:
-                print(f"Firestore Order Sync Error: {e}")
 
             # Generate expiring signed download URL
             token = signer.sign(str(order.id))

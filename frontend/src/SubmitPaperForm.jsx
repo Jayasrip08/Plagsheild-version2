@@ -2,12 +2,16 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
+  Ban,
   Check,
   CloudUpload,
+  EyeOff,
   FileText,
   Lock,
   Plus,
+  ShieldCheck,
   Trash2,
+  UserCheck,
   X,
 } from 'lucide-react';
 import SubmissionGuidelinesPage, { GuidelinesTrigger } from './SubmissionGuidelines';
@@ -919,6 +923,50 @@ export default function SubmitPaperForm({ user, pricingConfig, submitting, onSub
                   </div>
                 )}
                 <FieldError message={showError('file') ? errors.file : ''} />
+
+                <div className="manuscript-protection-card">
+                  <div className="protection-card-header">
+                    <ShieldCheck size={20} className="protection-shield-icon" />
+                    <h4>Your Manuscript Is Protected</h4>
+                  </div>
+                  <div className="protection-grid">
+                    <div className="protection-item">
+                      <EyeOff size={18} className="protection-icon" />
+                      <div className="protection-item-content">
+                        <h5>Private submission</h5>
+                        <p>Your manuscript is not publicly displayed on NovelCheckr.</p>
+                      </div>
+                    </div>
+                    <div className="protection-item">
+                      <Lock size={18} className="protection-icon" />
+                      <div className="protection-item-content">
+                        <h5>Secure transmission</h5>
+                        <p>Documents are transmitted using encrypted HTTPS connections.</p>
+                      </div>
+                    </div>
+                    <div className="protection-item">
+                      <UserCheck size={18} className="protection-icon" />
+                      <div className="protection-item-content">
+                        <h5>Controlled access</h5>
+                        <p>Only authorized users/services required for processing can access your manuscript.</p>
+                      </div>
+                    </div>
+                    <div className="protection-item">
+                      <Ban size={18} className="protection-icon" />
+                      <div className="protection-item-content">
+                        <h5>No advertising use</h5>
+                        <p>Your manuscript is not used for advertising or promotional purposes.</p>
+                      </div>
+                    </div>
+                    <div className="protection-item">
+                      <FileText size={18} className="protection-icon" />
+                      <div className="protection-item-content">
+                        <h5>Transparent processing</h5>
+                        <p>Where third-party services are used for similarity analysis, the applicable processing is disclosed in our Privacy Policy.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </section>
             )}

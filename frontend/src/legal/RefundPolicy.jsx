@@ -2,7 +2,12 @@ import LegalLayout from './LegalLayout';
 
 export default function RefundPolicy() {
   return (
-    <LegalLayout title="Refund & Cancellation Policy" lastUpdated="August 30, 2026">
+    <LegalLayout
+      title="Refund & Cancellation Policy"
+      lastUpdated="August 30, 2026"
+      path="/refund-policy"
+      description="When refunds are available for NovelCheckr's Similarity Check (₹99), Similarity Improvement (₹299), and Research Paper Package (₹549) orders."
+    >
       <p className="legal-identity">
         <strong>NovelCheckr</strong><br />
         An academic research and manuscript platform operated by{' '}

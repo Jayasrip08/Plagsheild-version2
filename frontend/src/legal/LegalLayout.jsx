@@ -1,8 +1,15 @@
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import logoImage from '../images/nc.png';
+import useDocumentMeta from '../useDocumentMeta';
 
-export default function LegalLayout({ title, lastUpdated, children }) {
+export default function LegalLayout({ title, lastUpdated, description, path, children }) {
+  useDocumentMeta({
+    title: `${title} | NovelCheckr`,
+    description,
+    path,
+  });
+
   return (
     <div className="legal-page">
       <header className="legal-header">

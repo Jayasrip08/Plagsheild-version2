@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import {
+  LayoutDashboard,
   History,
   UserRound,
   FilePlus2,
@@ -30,6 +31,7 @@ import HelpSupport from './HelpSupport';
 import PaymentSuccess from './PaymentSuccess';
 import StatusPage from './StatusPage';
 import StudentOrderDetail from './StudentOrderDetail';
+import UserDashboard from './UserDashboard';
 import logoImage from './images/nc.png';
 import { paymentOf, paymentStatusLabel } from './SubmissionRecord';
 import {
@@ -53,11 +55,11 @@ function orderStatusTone(status = '') {
 export default function StudentPortal({ user, setUser }) {
   const [activeTab, setActiveTabState] = useState(() => {
     try {
-      const saved = window.sessionStorage.getItem('student-portal-active-tab') || 'new_check';
+      const saved = window.sessionStorage.getItem('student-portal-active-tab') || 'dashboard';
       // Never restore the transient payment success screen after a refresh.
       return saved === 'payment_success' ? 'tracking' : saved;
     } catch {
-      return 'new_check';
+      return 'dashboard';
     }
   });
 
@@ -417,16 +419,15 @@ export default function StudentPortal({ user, setUser }) {
           </button>
         </div>
 
-        <button
-          className={`sidebar-cta ${activeTab === 'new_check' ? 'is-active' : ''}`}
-          onClick={() => setActiveTab('new_check')}
-          title="New Check"
-        >
-          <span className="nav-ico"><FilePlus2 size={18} strokeWidth={2} /></span>
-          <span className="nav-label">New Check</span>
-        </button>
-
         <nav className="sidebar-nav" aria-label="Workspace">
+          <button className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')} title="Dashboard">
+            <span className="nav-ico"><LayoutDashboard size={18} strokeWidth={2} /></span>
+            <span className="nav-label">Dashboard</span>
+          </button>
+          <button className={`nav-link ${activeTab === 'new_check' ? 'active' : ''}`} onClick={() => setActiveTab('new_check')} title="New Check">
+            <span className="nav-ico"><FilePlus2 size={18} strokeWidth={2} /></span>
+            <span className="nav-label">New Check</span>
+          </button>
           <button className={`nav-link ${activeTab === 'history' ? 'active' : ''}`} onClick={() => setActiveTab('history')} title="History">
             <span className="nav-ico"><History size={18} strokeWidth={2} /></span>
             <span className="nav-label">History</span>
@@ -473,6 +474,29 @@ export default function StudentPortal({ user, setUser }) {
 
       <div className="workspace">
       <main className={`dashboard-main ${activeTab === 'new_check' ? 'is-submit' : ''} ${(activeTab === 'profile' || activeTab === 'support') ? 'is-flush' : ''}`}>
+        {activeTab === 'dashboard' && (
+          <div className="adm-page">
+            <UserDashboard
+              user={user}
+              orders={orders}
+              loadingOrders={loadingOrders}
+              onRefresh={fetchOrders}
+              onNewCheck={() => setActiveTab('new_check')}
+              onViewHistory={() => setActiveTab('history')}
+              onSelectOrder={(ord) => {
+                setSelectedRecord(ord);
+                setActiveTab('history');
+              }}
+              onTrackOrder={(ord) => {
+                setTrackedOrder(ord);
+                setActiveTab('tracking');
+              }}
+              onEditProfile={() => setActiveTab('profile')}
+              onOpenSupport={() => setActiveTab('support')}
+            />
+          </div>
+        )}
+
         {activeTab === 'new_check' && (
           <div className="submit-wrap">
             {formError && <div className="form-error" style={{ margin: '16px 28px 0' }}>{formError}</div>}

@@ -1,13 +1,35 @@
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
-import api, { getUserProfile, loginUser, registerUser, googleLoginUser } from './api'
+import api, { getUserProfile, loginUser, registerUser, googleLoginUser, clearAuthStorage } from './api'
 import LandingPage from './LandingPage'
 import PageLoader from './PageLoader'
+import ErrorBoundary from './ErrorBoundary'
 import logoImage from './images/nc.png'
 
-const StudentPortal = lazy(() => import('./StudentPortal'))
-const AdminPortal = lazy(() => import('./AdminPortal'))
+// After a redeploy, a page kept open (or restored from bfcache) can still
+// reference old JS chunk hashes that no longer exist on the server — the
+// dynamic import() then rejects and, with nothing to catch it, blanks the
+// whole app. Reload once to pick up the fresh index.html/chunk map before
+// giving up and letting the ErrorBoundary show a retry screen.
+const lazyWithChunkRetry = (importer) =>
+  lazy(async () => {
+    try {
+      return await importer();
+    } catch (err) {
+      const reloadKey = 'novelcheckr-chunk-reload';
+      if (!window.sessionStorage.getItem(reloadKey)) {
+        window.sessionStorage.setItem(reloadKey, '1');
+        window.location.reload();
+        return new Promise(() => {}); // suspend forever; reload is already in flight
+      }
+      window.sessionStorage.removeItem(reloadKey);
+      throw err;
+    }
+  });
 
-const AuthAnimation = lazy(() => import('./AuthAnimation'))
+const StudentPortal = lazyWithChunkRetry(() => import('./StudentPortal'))
+const AdminPortal = lazyWithChunkRetry(() => import('./AdminPortal'))
+
+const AuthAnimation = lazyWithChunkRetry(() => import('./AuthAnimation'))
 
 
 function App() {
@@ -90,6 +112,9 @@ function App() {
     const currentUser = getUserProfile();
     if (currentUser) {
       setUser(currentUser);
+    } else {
+      // Partial/stale tokens without a user object break public auth APIs.
+      clearAuthStorage();
     }
     setLoading(false);
   }, []);
@@ -110,19 +135,27 @@ function App() {
   const validatePhone = (value) => /^\d{10}$/.test(value);
   const validatePassword = (value) => /^(?=.{8}$)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?])[A-Z][A-Za-z0-9!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]{7}$/.test(value);
 
+  const friendlyAuthError = (message) => {
+    const text = String(message || '');
+    if (/given token not valid|token is invalid|token not valid for any token type/i.test(text)) {
+      return 'Your previous session expired. Please try registering or signing in again.';
+    }
+    return text;
+  };
+
   const extractApiErrorMessage = (error) => {
     const data = error?.response?.data;
     if (!data) {
       return error?.message || 'Invalid credentials or registration error. Please check values.';
     }
     if (typeof data === 'string') {
-      return data;
+      return friendlyAuthError(data);
     }
     if (data.detail) {
-      return data.detail;
+      return friendlyAuthError(data.detail);
     }
     if (data.error) {
-      return data.error;
+      return friendlyAuthError(data.error);
     }
 
     const messages = [];
@@ -137,7 +170,9 @@ function App() {
     };
 
     addValue(data);
-    return messages.filter(Boolean).join(' ') || 'Invalid credentials or registration error. Please check values.';
+    return friendlyAuthError(
+      messages.filter(Boolean).join(' ') || 'Invalid credentials or registration error. Please check values.'
+    );
   };
 
   const [googleAuthPayload, setGoogleAuthPayload] = useState(null);
@@ -196,6 +231,8 @@ function App() {
     setAuthError('');
     setPassword('');
     setConfirmPassword('');
+    // Drop stale JWTs when opening auth forms so signup/login cannot fail on old tokens.
+    clearAuthStorage();
     if (toLogin) {
       setEmail('');
       setPhone('');
@@ -461,13 +498,15 @@ function App() {
   // Render Portal according to role (Super Admin or User)
   if (user) {
     return (
-      <Suspense fallback={<PageLoader label="Preparing your dashboard…" />}>
-        {user.role === 'super_admin' ? (
-          <AdminPortal user={user} setUser={setUser} />
-        ) : (
-          <StudentPortal user={user} setUser={setUser} />
-        )}
-      </Suspense>
+      <ErrorBoundary>
+        <Suspense fallback={<PageLoader label="Preparing your dashboard…" />}>
+          {user.role === 'super_admin' ? (
+            <AdminPortal user={user} setUser={setUser} />
+          ) : (
+            <StudentPortal user={user} setUser={setUser} />
+          )}
+        </Suspense>
+      </ErrorBoundary>
     );
   }
 

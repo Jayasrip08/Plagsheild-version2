@@ -14,9 +14,37 @@ const api = axios.create({
   },
 });
 
-// Inject Bearer token to request headers
+/** Public auth routes must never send a Bearer token — a stale JWT causes
+ *  "Given token not valid for any token type" even on AllowAny endpoints. */
+const PUBLIC_AUTH_PATHS = [
+  'accounts/register/',
+  'accounts/login/',
+  'accounts/google-login/',
+  'token/',
+  'token/refresh/',
+];
+
+const isPublicAuthRequest = (url = '') => {
+  const path = String(url).replace(/^\/+/, '');
+  return PUBLIC_AUTH_PATHS.some((p) => path.includes(p));
+};
+
+export const clearAuthStorage = () => {
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+  localStorage.removeItem('user');
+};
+
+// Inject Bearer token to request headers (skip public auth endpoints)
 api.interceptors.request.use(
   (config) => {
+    if (isPublicAuthRequest(config.url)) {
+      if (config.headers) {
+        delete config.headers.Authorization;
+        delete config.headers.authorization;
+      }
+      return config;
+    }
     const token = localStorage.getItem('access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -30,8 +58,16 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config;
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    const originalRequest = error.config || {};
+    const status = error.response?.status;
+    const detail = error.response?.data?.detail || error.response?.data?.error || '';
+
+    // Never attempt refresh loops on public auth calls
+    if (isPublicAuthRequest(originalRequest.url)) {
+      return Promise.reject(error);
+    }
+
+    if (status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       const refreshToken = localStorage.getItem('refresh_token');
       if (refreshToken) {
@@ -40,12 +76,17 @@ api.interceptors.response.use(
             refresh: refreshToken,
           });
           localStorage.setItem('access_token', res.data.access);
+          originalRequest.headers = originalRequest.headers || {};
           originalRequest.headers.Authorization = `Bearer ${res.data.access}`;
           return api(originalRequest);
-        } catch (refreshError) {
-          // Refresh failed, log out
-          logout();
+        } catch {
+          clearAuthStorage();
         }
+      } else if (
+        typeof detail === 'string' &&
+        detail.toLowerCase().includes('token')
+      ) {
+        clearAuthStorage();
       }
     }
     return Promise.reject(error);
@@ -53,6 +94,7 @@ api.interceptors.response.use(
 );
 
 export const loginUser = async (username, password) => {
+  clearAuthStorage();
   const response = await api.post('accounts/login/', { username, password });
   const { access, refresh, user } = response.data;
   localStorage.setItem('access_token', access);
@@ -62,6 +104,11 @@ export const loginUser = async (username, password) => {
 };
 
 export const googleLoginUser = async (googleData) => {
+  // Keep any existing session only for phone-complete flows that already
+  // returned requires_phone; otherwise start clean so stale JWTs cannot break signup.
+  if (!googleData?.phone) {
+    clearAuthStorage();
+  }
   const response = await api.post('accounts/google-login/', googleData);
   if (response.data?.requires_phone) {
     return response.data;
@@ -76,6 +123,7 @@ export const googleLoginUser = async (googleData) => {
 };
 
 export const registerUser = async (registrationData) => {
+  clearAuthStorage();
   return api.post('accounts/register/', registrationData);
 };
 
@@ -85,12 +133,10 @@ export const updateProfile = async (profileData) => {
 };
 
 export const logout = () => {
-  localStorage.removeItem('access_token');
-  localStorage.removeItem('refresh_token');
-  localStorage.removeItem('user');
+  clearAuthStorage();
   try {
     window.sessionStorage.clear();
-  } catch (e) {
+  } catch {
     // ignore
   }
   window.location.href = '/';
@@ -103,6 +149,7 @@ export const getUserProfile = () => {
     if (!user || !token) return null;
     return JSON.parse(user);
   } catch {
+    clearAuthStorage();
     return null;
   }
 };

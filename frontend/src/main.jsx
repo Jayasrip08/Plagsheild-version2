@@ -12,20 +12,23 @@ import './legal/legal.css'
 import './payment-success.css'
 import './status-page.css'
 import App from './App.jsx'
+import ErrorBoundary from './ErrorBoundary.jsx'
 import PrivacyPolicy from './legal/PrivacyPolicy.jsx'
 import TermsOfService from './legal/TermsOfService.jsx'
 import RefundPolicy from './legal/RefundPolicy.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <BrowserRouter>
-      <Routes>
-        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-        <Route path="/terms-of-service" element={<TermsOfService />} />
-        <Route path="/refund-policy" element={<RefundPolicy />} />
-        <Route path="/*" element={<App />} />
-      </Routes>
-      <ToastContainer position="top-center" autoClose={6000} theme="colored" />
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms-of-service" element={<TermsOfService />} />
+          <Route path="/refund-policy" element={<RefundPolicy />} />
+          <Route path="/*" element={<App />} />
+        </Routes>
+        <ToastContainer position="top-center" autoClose={6000} theme="colored" />
+      </BrowserRouter>
+    </ErrorBoundary>
   </StrictMode>,
 )

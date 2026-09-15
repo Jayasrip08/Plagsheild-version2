@@ -18,6 +18,12 @@ class CollegeListCreateView(generics.ListCreateAPIView):
     queryset = College.objects.all().order_by('college_name')
     serializer_class = CollegeSerializer
 
+    def get_authenticators(self):
+        # Public college listing must ignore stale JWTs from previous sessions.
+        if getattr(self.request, 'method', None) == 'GET':
+            return []
+        return super().get_authenticators()
+
     def get_permissions(self):
         if self.request.method == 'GET':
             return [permissions.AllowAny()]

@@ -172,6 +172,26 @@ export default function UserDashboard({
   const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(' ').trim();
   const displayName = fullName || profile.username || 'User';
 
+  // Only show skeleton placeholders on the very first load — a background
+  // refresh (Refresh button, polling) keeps the last known numbers visible
+  // instead of flashing empty cards.
+  const isInitialLoading = loadingOrders && orders.length === 0;
+
+  const similarityBand =
+    metrics.avgSimilarity === null
+      ? null
+      : Number(metrics.avgSimilarity) < 15
+      ? 'low'
+      : Number(metrics.avgSimilarity) <= 25
+      ? 'moderate'
+      : 'elevated';
+
+  const similarityBarColor =
+    similarityBand === 'low' ? '#16a34a' : similarityBand === 'moderate' ? '#d97706' : similarityBand === 'elevated' ? '#dc2626' : '#cbd5e1';
+
+  const similarityBarWidth =
+    metrics.avgSimilarity !== null ? `${Math.min(Math.max(Number(metrics.avgSimilarity), 2), 100)}%` : '0%';
+
   return (
     <div className="ud-page">
       {/* --------------------------------------------------------------------
@@ -241,44 +261,76 @@ export default function UserDashboard({
           -------------------------------------------------------------------- */}
       <div className="ud-kpi-grid">
         <div className="ud-kpi-card">
-          <div>
-            <div className="ud-kpi-label">Total Submissions</div>
-            <div className="ud-kpi-number">{metrics.total}</div>
+          <div className="ud-kpi-head">
+            <span className="ud-kpi-icon tone-slate">
+              <Layers size={16} />
+            </span>
+            <span className="ud-kpi-label">Total Submissions</span>
           </div>
+          {isInitialLoading ? (
+            <div className="ud-skel ud-skel-number" />
+          ) : (
+            <div className="ud-kpi-number">{metrics.total}</div>
+          )}
           <div className="ud-kpi-subtext">All-time manuscripts checked</div>
         </div>
 
-        <div className="ud-kpi-card" style={{ borderLeft: '3px solid var(--success, #16a34a)' }}>
-          <div>
-            <div className="ud-kpi-label">Reports Ready</div>
-            <div className="ud-kpi-number" style={{ color: 'var(--success, #16a34a)' }}>
-              {metrics.completedCount}
-            </div>
+        <div className="ud-kpi-card">
+          <div className="ud-kpi-head">
+            <span className="ud-kpi-icon tone-emerald">
+              <CheckCircle2 size={16} />
+            </span>
+            <span className="ud-kpi-label">Reports Ready</span>
           </div>
+          {isInitialLoading ? (
+            <div className="ud-skel ud-skel-number" />
+          ) : (
+            <div className="ud-kpi-number tone-emerald-text">{metrics.completedCount}</div>
+          )}
           <div className="ud-kpi-subtext">Verified reports available</div>
         </div>
 
-        <div className="ud-kpi-card" style={{ borderLeft: '3px solid var(--warning, #d97706)' }}>
-          <div>
-            <div className="ud-kpi-label">In Progress</div>
-            <div className="ud-kpi-number" style={{ color: 'var(--warning, #d97706)' }}>
+        <div className="ud-kpi-card">
+          <div className="ud-kpi-head">
+            <span className="ud-kpi-icon tone-amber">
+              <Clock size={16} />
+            </span>
+            <span className="ud-kpi-label">In Progress</span>
+          </div>
+          {isInitialLoading ? (
+            <div className="ud-skel ud-skel-number" />
+          ) : (
+            <div className="ud-kpi-number tone-amber-text">
               {metrics.inFlightCount + metrics.pendingPaymentCount}
             </div>
-          </div>
+          )}
           <div className="ud-kpi-subtext">Under review / pending</div>
         </div>
 
-        <div className="ud-kpi-card" style={{ borderLeft: '3px solid var(--primary, #1570ef)' }}>
-          <div>
-            <div className="ud-kpi-label">Avg Similarity Rate</div>
-            <div className="ud-kpi-number" style={{ color: 'var(--primary, #1570ef)' }}>
+        <div className="ud-kpi-card">
+          <div className="ud-kpi-head">
+            <span className="ud-kpi-icon tone-blue">
+              <ScanLine size={16} />
+            </span>
+            <span className="ud-kpi-label">Avg Similarity Rate</span>
+          </div>
+          {isInitialLoading ? (
+            <div className="ud-skel ud-skel-number" />
+          ) : (
+            <div className="ud-kpi-number tone-blue-text">
               {metrics.avgSimilarity !== null ? `${metrics.avgSimilarity}%` : '—'}
             </div>
+          )}
+          <div className="ud-kpi-progress-track" aria-hidden="true">
+            <div
+              className="ud-kpi-progress-fill"
+              style={{ width: isInitialLoading ? '0%' : similarityBarWidth, background: similarityBarColor }}
+            />
           </div>
           <div className="ud-kpi-subtext">
             {metrics.avgSimilarity !== null ? (
               <span className={similarityPillClass(metrics.avgSimilarity)}>
-                {Number(metrics.avgSimilarity) < 15 ? 'Low Risk' : Number(metrics.avgSimilarity) <= 25 ? 'Moderate' : 'Elevated'}
+                {similarityBand === 'low' ? 'Low Risk' : similarityBand === 'moderate' ? 'Moderate' : 'Elevated'}
               </span>
             ) : (
               'Pending scans'
@@ -287,12 +339,19 @@ export default function UserDashboard({
         </div>
 
         <div className="ud-kpi-card">
-          <div>
-            <div className="ud-kpi-label">Words Scanned</div>
+          <div className="ud-kpi-head">
+            <span className="ud-kpi-icon tone-violet">
+              <BookOpen size={16} />
+            </span>
+            <span className="ud-kpi-label">Words Scanned</span>
+          </div>
+          {isInitialLoading ? (
+            <div className="ud-skel ud-skel-number" />
+          ) : (
             <div className="ud-kpi-number">
               {metrics.totalWords > 0 ? metrics.totalWords.toLocaleString() : '0'}
             </div>
-          </div>
+          )}
           <div className="ud-kpi-subtext">Total words analyzed</div>
         </div>
       </div>

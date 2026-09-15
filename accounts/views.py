@@ -17,15 +17,21 @@ from .permissions import IsCollegeAdmin, IsSuperAdmin
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
 
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
+    # Ignore any stale Bearer token — invalid JWTs otherwise raise
+    # "Given token not valid for any token type" before AllowAny runs.
+    authentication_classes = []
     permission_classes = [permissions.AllowAny]
 
 
 class GoogleLoginView(APIView):
+    authentication_classes = []
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):

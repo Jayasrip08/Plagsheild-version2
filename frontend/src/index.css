@@ -124,6 +124,73 @@ a:hover {
   to { transform: rotate(360deg); }
 }
 
+/* Global error boundary fallback — shown instead of a blank page when a
+   render-time error occurs and can't be recovered automatically. */
+.eb-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary, #f8fafc);
+  padding: 24px;
+}
+
+.eb-card {
+  max-width: 400px;
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 14px;
+  padding: 32px 28px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.eb-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 16px;
+  border-radius: 12px;
+  background: var(--warning-bg, #fffbeb);
+  color: var(--warning, #d97706);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.eb-card h2 {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-main, #0f172a);
+  margin-bottom: 8px;
+}
+
+.eb-card p {
+  font-size: 13.5px;
+  color: var(--text-muted, #64748b);
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.eb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: var(--primary, #1570ef);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.eb-btn:hover {
+  background: var(--primary-hover, #1d4ed8);
+}
+
 /* Full-page loader — used while the app boots and while a portal's code chunk loads */
 .page-loader {
   position: fixed;

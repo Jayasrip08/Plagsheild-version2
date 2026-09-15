@@ -244,6 +244,16 @@ export default function StudentPortal({ user, setUser }) {
       }, 100);
     });
 
+  // Razorpay Address step rejects many contact formats (+91..., blanks, short numbers).
+  // Only pass a clean 10-digit Indian mobile; omit contact otherwise so checkout still opens.
+  const razorpayContact = (rawPhone) => {
+    const digits = String(rawPhone || '').replace(/\D/g, '');
+    if (digits.length === 10) return digits;
+    if (digits.length === 12 && digits.startsWith('91')) return digits.slice(2);
+    if (digits.length === 11 && digits.startsWith('0')) return digits.slice(1);
+    return '';
+  };
+
   const initiatePayment = async (order) => {
     try {
       const res = await api.post('payments/create/', { order_id: order.id });
@@ -254,11 +264,28 @@ export default function StudentPortal({ user, setUser }) {
         return;
       }
 
+      if (!payData.id || !payData.key) {
+        throw new Error(payData.error || 'Payment order could not be created. Please try again.');
+      }
+
       await waitForRazorpay();
+
+      const contact = razorpayContact(user.phone || order.author_phone);
+      const email = String(user.email || order.author_email || '').trim();
+      const name = (
+        user.first_name
+          ? `${user.first_name} ${user.last_name || ''}`.trim()
+          : (order.author_name || user.username || '')
+      ).slice(0, 100);
+
+      const prefill = {};
+      if (name) prefill.name = name;
+      if (email && email.includes('@')) prefill.email = email;
+      if (contact) prefill.contact = contact;
 
       let checkoutCompleted = false;
       const options = {
-        key: payData.key || import.meta.env.VITE_RAZORPAY_KEY_ID,
+        key: payData.key,
         amount: payData.amount,
         currency: payData.currency || 'INR',
         name: 'NovelCheckr',
@@ -273,11 +300,7 @@ export default function StudentPortal({ user, setUser }) {
             order_id: order.id,
           });
         },
-        prefill: {
-          name: user.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : user.username,
-          email: user.email,
-          contact: user.phone || '',
-        },
+        prefill,
         theme: { color: '#1570ef' },
         modal: {
           ondismiss: () => {
@@ -291,9 +314,6 @@ export default function StudentPortal({ user, setUser }) {
       rzp.on('payment.failed', (response) => {
         const desc = response?.error?.description || 'Payment was not completed. Please try again.';
         toast.error(`Payment failed: ${desc}`);
-        setTimeout(() => {
-          window.location.reload();
-        }, 1500);
       });
       rzp.open();
     } catch (e) {

@@ -66,10 +66,12 @@ class CreateRazorpayOrderView(APIView):
         # Real Razorpay execution
         try:
             client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+            # Unique receipt per attempt — retries on the same order must not reuse receipt ids.
+            receipt = f"ord_{order.id}_{int(timezone.now().timestamp())}"[:40]
             razorpay_order = client.order.create({
                 "amount": amount_in_paise,
                 "currency": "INR",
-                "receipt": f"receipt_order_{order.id}",
+                "receipt": receipt,
                 "notes": {
                     "platform_order_id": str(order.id),
                     "paper_title": (order.paper_title or '')[:100],

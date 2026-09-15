@@ -3,7 +3,12 @@ import LegalLayout from './LegalLayout';
 
 export default function PrivacyPolicy() {
   return (
-    <LegalLayout title="Privacy Policy" lastUpdated="August 30, 2026">
+    <LegalLayout
+      title="Privacy Policy"
+      lastUpdated="August 30, 2026"
+      path="/privacy-policy"
+      description="How NovelCheckr collects, uses, and protects your account, manuscript, and payment data across our plagiarism checking and AI content detection service."
+    >
       <p className="legal-identity">
         <strong>NovelCheckr</strong><br />
         An academic research and manuscript platform operated by{' '}

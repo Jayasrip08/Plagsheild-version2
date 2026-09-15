@@ -23,6 +23,7 @@ import heroTeamImage from './images/hero-team.jpg';
 import reportReviewImage from './images/report-review.jpg';
 import securityReviewImage from './images/img.jpg';
 import logoImage from './images/nc.png';
+import useDocumentMeta from './useDocumentMeta';
 
 const COMPARISON_ROWS = [
   { feature: 'Direct individual access', free: true, turnitin: false, novelcheckr: true },
@@ -97,6 +98,13 @@ const FAQ_ITEMS = [
 ];
 
 export default function LandingPage({ onNavigateToAuth }) {
+  useDocumentMeta({
+    title: 'NovelCheckr | Online Plagiarism Checker & AI Content Detector',
+    description:
+      'NovelCheckr is a Turnitin-grade plagiarism checker and AI content detector for students, researchers, and colleges in India and worldwide. Get instant, confidential PDF similarity reports for theses, research papers, and journal submissions.',
+    path: '/',
+  });
+
   const [openFaq, setOpenFaq] = useState(0);
   const [scrolled, setScrolled] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);

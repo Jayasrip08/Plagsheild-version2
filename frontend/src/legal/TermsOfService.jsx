@@ -3,7 +3,12 @@ import LegalLayout from './LegalLayout';
 
 export default function TermsOfService() {
   return (
-    <LegalLayout title="Terms of Service" lastUpdated="August 30, 2026">
+    <LegalLayout
+      title="Terms of Service"
+      lastUpdated="August 30, 2026"
+      path="/terms-of-service"
+      description="The terms governing your use of NovelCheckr's online plagiarism checker, AI content detector, and manuscript similarity analysis services."
+    >
       <p className="legal-identity">
         <strong>NovelCheckr</strong><br />
         An academic research and manuscript platform operated by{' '}

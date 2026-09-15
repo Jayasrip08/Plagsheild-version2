@@ -240,7 +240,8 @@ export default function UserDashboard({
                 {' • '}
                 Status: <span style={{ fontWeight: 600, color: 'var(--primary)' }}>{metrics.activeOrder.status}</span>
                 {' • '}
-                Submitted {formatListDate(metrics.activeOrder.created_at)}
+                Submitted {formatListDate(metrics.activeOrder.created_at).date}
+                {formatListDate(metrics.activeOrder.created_at).time ? ` at ${formatListDate(metrics.activeOrder.created_at).time}` : ''}
               </p>
             </div>
           </div>
@@ -390,7 +391,8 @@ export default function UserDashboard({
                     formatter={(value) => [`${value}% Similarity`, 'Score']}
                     labelFormatter={(label, items) => {
                       const item = items && items[0] ? items[0].payload : null;
-                      return item ? `${item.fullTitle} (${item.date})` : label;
+                      const formattedDate = item?.date?.date || item?.date || '';
+                      return item ? `${item.fullTitle}${formattedDate ? ` (${formattedDate})` : ''}` : label;
                     }}
                     contentStyle={{
                       backgroundColor: 'var(--bg-secondary, #ffffff)',
@@ -512,7 +514,15 @@ export default function UserDashboard({
                         </div>
                       </td>
                       <td>
-                        <span className="adm-muted">{formatListDate(order.created_at)}</span>
+                        {(() => {
+                          const when = formatListDate(order.created_at);
+                          return (
+                            <div className="adm-datetime">
+                              <strong>{when.date}</strong>
+                              {when.time ? <span>{when.time}</span> : null}
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td>
                         <span style={{ fontWeight: 600, color: '#334155' }}>

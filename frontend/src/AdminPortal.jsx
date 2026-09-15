@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api, { logout } from './api';
+import SectionLoader from './SectionLoader';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import {
   Download,
@@ -16,11 +17,36 @@ import {
   BadgeIndianRupee,
   LifeBuoy,
   Shield,
-  LogOut
+  LogOut,
+  Search,
+  Eye,
+  Pencil,
+  MoreHorizontal,
+  RefreshCw,
+  FilterX,
+  UserCog,
+  ListOrdered,
+  Inbox,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
-import SubmissionRecord, { paymentOf, paymentStatusLabel } from './SubmissionRecord';
+import { paymentOf, paymentStatusLabel } from './SubmissionRecord';
+import AdminOrderDetail from './AdminOrderDetail';
+import AdminUserDetail from './AdminUserDetail';
 import SupportInbox from './SupportInbox';
 import logoImage from './images/nc.png';
+import {
+  formatListDate,
+  initialsOf,
+  matchesSearch,
+  avatarTone,
+  roleTone,
+  paginate,
+  fileLabel,
+  downloadCsv,
+  historyDateRange,
+  orderInDateRange,
+} from './adminListHelpers';
 
 export default function AdminPortal({ user }) {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -62,8 +88,25 @@ export default function AdminPortal({ user }) {
   const [users, setUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [searchUser, setSearchUser] = useState('');
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [userRoleFilter, setUserRoleFilter] = useState('all');
+  const [userStatusFilter, setUserStatusFilter] = useState('all');
+  const [userPage, setUserPage] = useState(1);
+  const [userPageSize, setUserPageSize] = useState(10);
+  const [openUserMenu, setOpenUserMenu] = useState(null);
   const [historySearch, setHistorySearch] = useState('');
   const [selectedHistoryOrder, setSelectedHistoryOrder] = useState(null);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyPageSize, setHistoryPageSize] = useState(10);
+  const [historyDatePreset, setHistoryDatePreset] = useState('all');
+  const [historyDateExact, setHistoryDateExact] = useState('');
+  const [historyDateFrom, setHistoryDateFrom] = useState('');
+  const [historyDateTo, setHistoryDateTo] = useState('');
+  const [queueSearch, setQueueSearch] = useState('');
+  const [queueStatusFilter, setQueueStatusFilter] = useState('all');
+  const [queuePage, setQueuePage] = useState(1);
+  const [queuePageSize, setQueuePageSize] = useState(10);
+  const [openQueueMenu, setOpenQueueMenu] = useState(null);
 
   // Pricing configs
   const [pricing, setPricing] = useState({ per_word_rate: '', express_fee: '', editing_suggestions_fee: '' });
@@ -125,15 +168,25 @@ export default function AdminPortal({ user }) {
     }
   };
 
-  const fetchUsers = async (search = '') => {
+  const fetchUsers = async () => {
     setLoadingUsers(true);
     try {
-      const res = await api.get('accounts/super/users/', {
-        params: search ? { search } : {}
+      const res = await api.get('accounts/super/users/');
+      const list = (Array.isArray(res.data) ? res.data : [])
+        .slice()
+        .sort((a, b) => {
+          const tb = new Date(b.date_joined || 0).getTime();
+          const ta = new Date(a.date_joined || 0).getTime();
+          if (tb !== ta) return tb - ta;
+          return (b.id || 0) - (a.id || 0);
+        });
+      setUsers(list);
+      setSelectedUser((prev) => {
+        if (!prev) return null;
+        return list.find((u) => u.id === prev.id) || null;
       });
-      setUsers(res.data);
     } catch (e) {
-      console.error("Failed to search users list", e);
+      console.error("Failed to load users list", e);
     } finally {
       setLoadingUsers(false);
     }
@@ -148,15 +201,18 @@ export default function AdminPortal({ user }) {
     }
   };
 
-  const fetchHistory = async (query = historySearch.trim()) => {
+  const fetchHistory = async () => {
     setLoadingHistory(true);
     try {
-      const params = { status: 'Report Ready' };
-      if (query) params.search = query;
-      const res = await api.get('orders/', { params });
-      const completedOnly = (Array.isArray(res.data) ? res.data : []).filter(
-        o => o.status === 'Report Ready' || o.status === 'Completed'
-      );
+      const res = await api.get('orders/', { params: { status: 'Report Ready' } });
+      const completedOnly = (Array.isArray(res.data) ? res.data : [])
+        .filter((o) => o.status === 'Report Ready' || o.status === 'Completed')
+        .sort((a, b) => {
+          const tb = new Date(b.created_at || 0).getTime();
+          const ta = new Date(a.created_at || 0).getTime();
+          if (tb !== ta) return tb - ta;
+          return (b.id || 0) - (a.id || 0);
+        });
       setHistoryOrders(completedOnly);
       setSelectedHistoryOrder(null);
     } catch (e) {
@@ -164,11 +220,6 @@ export default function AdminPortal({ user }) {
     } finally {
       setLoadingHistory(false);
     }
-  };
-
-  const handleHistorySearchSubmit = (e) => {
-    e.preventDefault();
-    fetchHistory(historySearch.trim());
   };
 
   const fetchSupportInbox = async () => {
@@ -301,7 +352,7 @@ export default function AdminPortal({ user }) {
     try {
       const res = await api.post(`accounts/super/users/${userId}/block/`);
       alert(res.data.message);
-      fetchUsers(searchUser);
+      await fetchUsers();
     } catch (e) {
       console.error("Failed to toggle block status", e);
       alert("Cannot block superadmin user.");
@@ -317,7 +368,8 @@ export default function AdminPortal({ user }) {
     try {
       const res = await api.delete(`accounts/super/users/${userId}/delete/`);
       alert(res.data.message || "User deleted successfully.");
-      fetchUsers(searchUser);
+      setSelectedUser(null);
+      await fetchUsers();
     } catch (e) {
       console.error("Failed to delete user", e);
       alert(e.response?.data?.error || "Failed to delete user.");
@@ -339,10 +391,186 @@ export default function AdminPortal({ user }) {
     }
   };
 
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    fetchUsers(searchUser);
+  const filteredUsers = users.filter((u) => {
+    if (userRoleFilter !== 'all' && u.role !== userRoleFilter) return false;
+    if (userStatusFilter === 'active' && !u.is_active) return false;
+    if (userStatusFilter === 'blocked' && u.is_active) return false;
+    if (!matchesSearch(
+      searchUser,
+      u.id,
+      u.username,
+      u.email,
+      u.first_name,
+      u.last_name,
+      u.phone,
+      u.role,
+      `${u.first_name || ''} ${u.last_name || ''}`,
+    )) return false;
+    return true;
+  });
+  const usersPageData = paginate(filteredUsers, userPage, userPageSize);
+
+  const filteredQueue = queue.filter((order) => {
+    if (queueStatusFilter !== 'all' && order.status !== queueStatusFilter) return false;
+    const pay = paymentOf(order);
+    return matchesSearch(
+      queueSearch,
+      order.id,
+      order.paper_title,
+      order.document,
+      order.author_name,
+      order.author_email,
+      order.user_details?.username,
+      order.user_details?.email,
+      order.status,
+      pay?.razorpay_payment_id,
+      pay?.razorpay_order_id,
+      pay?.transaction_id,
+    );
+  });
+  const queuePageData = paginate(filteredQueue, queuePage, queuePageSize);
+  const historyDateBounds = historyDateRange(historyDatePreset, {
+    date: historyDateExact,
+    from: historyDateFrom,
+    to: historyDateTo,
+  });
+  const filteredHistoryOrders = historyOrders.filter((order) => {
+    if (!orderInDateRange(order, historyDateBounds)) return false;
+    const pay = paymentOf(order);
+    return matchesSearch(
+      historySearch,
+      order.id,
+      order.paper_title,
+      order.document,
+      order.author_name,
+      order.author_email,
+      order.user_details?.username,
+      order.user_details?.email,
+      order.user_details?.id,
+      order.status,
+      pay?.razorpay_payment_id,
+      pay?.razorpay_order_id,
+      pay?.transaction_id,
+    );
+  });
+  const historyPageData = paginate(filteredHistoryOrders, historyPage, historyPageSize);
+
+  const downloadQueueDocument = async (order) => {
+    const docUrl = order.document;
+    if (!docUrl) {
+      alert('No document attached to this order.');
+      return;
+    }
+    const cleanFileName = fileLabel(docUrl);
+    try {
+      if (docUrl.startsWith('http://') || docUrl.startsWith('https://')) {
+        const resp = await fetch(docUrl);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const blob = await resp.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.setAttribute('download', cleanFileName);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(blobUrl);
+        return;
+      }
+      const response = await api.get(docUrl, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', cleanFileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      try {
+        const res = await api.get(`orders/${order.id}/download-document/`, { responseType: 'blob' });
+        const url = window.URL.createObjectURL(new Blob([res.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', cleanFileName);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+      } catch {
+        alert('Could not download this manuscript.');
+      }
+    }
   };
+
+  const exportUsersCsv = () => {
+    downloadCsv('novelcheckr-users.csv', [
+      ['User ID', 'Joined', 'Name', 'Username', 'Email', 'Role', 'Phone', 'Status'],
+      ...filteredUsers.map((u) => [
+        u.id,
+        u.date_joined || '',
+        `${u.first_name || ''} ${u.last_name || ''}`.trim(),
+        u.username,
+        u.email,
+        u.role,
+        u.phone || '',
+        u.is_active ? 'Active' : 'Blocked',
+      ]),
+    ]);
+  };
+
+  const exportHistoryCsv = () => {
+    downloadCsv('novelcheckr-order-history.csv', [
+      ['Order ID', 'Submitted', 'Manuscript', 'Author', 'Email', 'Payment ID', 'Transaction ID', 'Amount', 'Status'],
+      ...filteredHistoryOrders.map((o) => {
+        const pay = paymentOf(o);
+        return [
+          o.id,
+          o.created_at || '',
+          o.paper_title || fileLabel(o.document),
+          o.author_name || '',
+          o.author_email || o.user_details?.email || '',
+          pay?.razorpay_payment_id || '',
+          pay?.transaction_id || '',
+          pay?.amount || o.price || '',
+          o.status || '',
+        ];
+      }),
+    ]);
+  };
+
+  const renderPager = (pageData, setPage, pageSize, setPageSize, noun) => (
+    <div className="adm-footer">
+      <div className="adm-footer-meta">
+        Showing <strong>{pageData.start}</strong> – <strong>{pageData.end}</strong> of <strong>{pageData.total}</strong> {noun}
+      </div>
+      <div className="adm-pager">
+        <label>
+          Rows per page
+          <select
+            value={pageSize}
+            onChange={(e) => {
+              setPageSize(Number(e.target.value));
+              setPage(1);
+            }}
+          >
+            <option value={10}>10</option>
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+          </select>
+        </label>
+        <div className="adm-page-btns">
+          <button type="button" className="adm-page-btn" disabled={pageData.page <= 1} onClick={() => setPage(pageData.page - 1)}>
+            <ChevronLeft size={16} />
+          </button>
+          <button type="button" className="adm-page-btn is-active">{pageData.page}</button>
+          <button type="button" className="adm-page-btn" disabled={pageData.page >= pageData.pages} onClick={() => setPage(pageData.page + 1)}>
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className={`dashboard-layout has-app-sidebar ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
@@ -383,7 +611,7 @@ export default function AdminPortal({ user }) {
             <span className="nav-ico"><History size={18} strokeWidth={2} /></span>
             <span className="nav-label">History</span>
           </button>
-          <button className={`nav-link ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')} title="Users">
+          <button className={`nav-link ${activeTab === 'users' ? 'active' : ''}`} onClick={() => { setActiveTab('users'); setSelectedUser(null); fetchUsers(); }} title="Users">
             <span className="nav-ico"><Users size={18} strokeWidth={2} /></span>
             <span className="nav-label">Users</span>
           </button>
@@ -427,7 +655,7 @@ export default function AdminPortal({ user }) {
             </p>
 
             {loadingStats ? (
-              <div className="spinner"></div>
+              <SectionLoader label="Loading dashboard…" />
             ) : stats && (
               <div>
                 {/* Stats Grid */}
@@ -537,263 +765,355 @@ export default function AdminPortal({ user }) {
 
         {/* TAB 2: PENDING QUEUE */}
         {activeTab === 'queue' && (
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <h2 style={{ fontSize: '26px' }}>Pending Checks Queue</h2>
-              <button className="btn btn-secondary" onClick={fetchQueue}>
-                Refresh Queue
-              </button>
+          <div className="adm-page">
+            <div className="adm-page-head">
+              <div className="adm-page-title-wrap">
+                <div className="adm-page-icon"><Inbox size={22} /></div>
+                <div>
+                  <h2>Pending Checks Queue</h2>
+                  <p>Review incoming manuscripts, download files, and complete similarity reports.</p>
+                </div>
+              </div>
+              <div className="adm-page-actions">
+                <button type="button" className="adm-btn adm-btn-secondary" onClick={() => { setQueuePage(1); fetchQueue(); }}>
+                  <RefreshCw size={15} /> Refresh
+                </button>
+              </div>
             </div>
 
-            {loadingQueue ? (
-              <div className="spinner"></div>
-            ) : queue.length === 0 ? (
-              <div className="glass-card" style={{ padding: '60px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                🎉 Great! The verification queue is currently empty.
+            <div className="adm-panel">
+              <div className="adm-filters">
+                <div className="adm-search">
+                  <Search size={15} />
+                  <input
+                    type="search"
+                    placeholder="Search by manuscript, author, email, or order ID..."
+                    value={queueSearch}
+                    onChange={(e) => { setQueueSearch(e.target.value); setQueuePage(1); }}
+                    autoComplete="off"
+                  />
+                </div>
+                <select className="adm-select" value={queueStatusFilter} onChange={(e) => { setQueueStatusFilter(e.target.value); setQueuePage(1); }}>
+                  <option value="all">All Status</option>
+                  <option value="Submitted">Submitted</option>
+                  <option value="Processing">Processing</option>
+                </select>
+                <button
+                  type="button"
+                  className="adm-btn adm-btn-secondary"
+                  onClick={() => { setQueueSearch(''); setQueueStatusFilter('all'); setQueuePage(1); }}
+                >
+                  <FilterX size={15} /> Clear
+                </button>
               </div>
-            ) : (
-              <div className="table-container">
-                <table className="custom-table">
-                  <thead>
-                    <tr>
-                      <th>Queue priority</th>
-                      <th>Order ID</th>
-                      <th>Manuscript</th>
-                      <th>Author</th>
-                      <th>Payment</th>
-                      <th>Amount</th>
-                      <th>Status</th>
-                      <th>Document</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {queue.map(order => {
-                      const pay = paymentOf(order);
-                      return (
-                      <tr 
-                        key={order.id}
-                        style={{
-                          backgroundColor: order.is_express ? 'rgba(6, 182, 212, 0.03)' : 'inherit'
-                        }}
-                      >
-                        <td>
-                          {order.package_tier === 'complete' || order.has_editing_suggestions ? (
-                            <span style={{ fontSize: '11px', padding: '4px 10px', background: '#eff6ff', color: '#1570ef', border: '1px solid #93c5fd', borderRadius: '4px', fontWeight: '700', whiteSpace: 'nowrap', display: 'inline-block' }}>
-                              COMPLETE
-                            </span>
-                          ) : order.package_tier === 'improve' || order.is_express ? (
-                            <span style={{ fontSize: '11px', padding: '4px 10px', background: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d', borderRadius: '4px', fontWeight: '700', whiteSpace: 'nowrap', display: 'inline-block' }}>
-                              IMPROVE
-                            </span>
-                          ) : (
-                            <span style={{ color: 'var(--text-muted)', fontSize: '13px', fontWeight: '500' }}>Check</span>
-                          )}
-                        </td>
-                        <td>#{order.id}</td>
-                        <td className="cell-stack">
-                          <strong>{order.paper_title || order.document?.split('?')[0].split('/').pop()}</strong>
-                          <span>{order.user_details?.username} · {order.user_details?.email}</span>
-                        </td>
-                        <td className="cell-stack">
-                          <strong>{order.author_name || '—'}</strong>
-                          <span>{order.author_email || order.author_institution || ''}</span>
-                        </td>
-                        <td className="cell-stack">
-                          <strong>{paymentStatusLabel(order)}</strong>
-                          <span className="mono-id">{pay?.razorpay_payment_id || pay?.razorpay_order_id || '—'}</span>
-                        </td>
-                        <td>
-                          <strong style={{ color: 'var(--text-main)', fontSize: '13px' }}>
-                            ₹{parseFloat(pay?.amount || order.price || 0).toFixed(2)}
-                          </strong>
-                        </td>
-                        <td>
-                          <span className={`badge badge-${order.status.toLowerCase().replace(' ', '-')}`}>
-                            {order.status}
-                          </span>
-                        </td>
-                        <td>
-                          <button 
-                            className="btn btn-secondary"
-                            style={{ padding: '6px 12px', fontSize: '12px' }}
-                            onClick={async () => {
-                              const docUrl = order.document;
-                              if (!docUrl) {
-                                alert('No document attached to this order.');
-                                return;
-                              }
 
-                              const cleanFileName = (docUrl.split('?')[0].split('/').pop()) || 'manuscript.docx';
-
-                              try {
-                                if (docUrl.startsWith('http://') || docUrl.startsWith('https://')) {
-                                  // Fetch directly without Django Authorization header so Supabase S3 doesn't reject it
-                                  const resp = await fetch(docUrl);
-                                  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-                                  const blob = await resp.blob();
-                                  const blobUrl = window.URL.createObjectURL(blob);
-                                  const link = document.createElement('a');
-                                  link.href = blobUrl;
-                                  link.setAttribute('download', cleanFileName);
-                                  document.body.appendChild(link);
-                                  link.click();
-                                  link.remove();
-                                  window.URL.revokeObjectURL(blobUrl);
-                                  return;
-                                }
-
-                                const response = await api.get(docUrl, { responseType: 'blob' });
-                                const url = window.URL.createObjectURL(new Blob([response.data]));
-                                const link = document.createElement('a');
-                                link.href = url;
-                                link.setAttribute('download', cleanFileName);
-                                document.body.appendChild(link);
-                                link.click();
-                                link.remove();
-                                window.URL.revokeObjectURL(url);
-                              } catch (err) {
-                                console.warn('Direct download failed, trying server endpoint fallback...', err);
-                                try {
-                                  const res = await api.get(`orders/${order.id}/download-document/`, { responseType: 'blob' });
-                                  const url = window.URL.createObjectURL(new Blob([res.data]));
-                                  const link = document.createElement('a');
-                                  link.href = url;
-                                  link.setAttribute('download', cleanFileName);
-                                  document.body.appendChild(link);
-                                  link.click();
-                                  link.remove();
-                                  window.URL.revokeObjectURL(url);
-                                } catch (fallbackErr) {
-                                  console.error('All download methods failed:', fallbackErr);
-                                  alert('This document was submitted prior to cloud storage setup and was deleted when the server restarted. Please test with a newly submitted order.');
-                                }
-                              }
-                            }}
-                          >
-                            <Download size={14} /> Download
-                          </button>
-                        </td>
-                        <td>
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            {order.status === 'Submitted' && (
-                              <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => handleStartProcessing(order.id)}>
-                                Start Processing
-                              </button>
-                            )}
-                            <button className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => setSelectedOrder(order)}>
-                              Complete
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+              {loadingQueue ? (
+                <SectionLoader label="Loading pending queue…" />
+              ) : queuePageData.total === 0 ? (
+                <div className="adm-empty">The verification queue is currently empty.</div>
+              ) : (
+                <>
+                  <div className="adm-table-wrap">
+                    <table className="adm-table">
+                      <thead>
+                        <tr>
+                          <th>#</th>
+                          <th>Order ID</th>
+                          <th>Submitted</th>
+                          <th>Manuscript</th>
+                          <th>Package</th>
+                          <th>Payment</th>
+                          <th>Status</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {queuePageData.items.map((order, idx) => {
+                          const pay = paymentOf(order);
+                          const when = formatListDate(order.created_at);
+                          const title = order.paper_title || fileLabel(order.document);
+                          const account = order.user_details?.username || order.author_name || 'User';
+                          const tone = avatarTone(account);
+                          const statusKey = String(order.status || '').toLowerCase().includes('process')
+                            ? 'process'
+                            : 'submitted';
+                          return (
+                            <tr key={order.id}>
+                              <td className="adm-muted">{queuePageData.start + idx}</td>
+                              <td><strong>#{order.id}</strong></td>
+                              <td>
+                                <div className="adm-datetime">
+                                  <strong>{when.date}</strong>
+                                  <span>{when.time}</span>
+                                </div>
+                              </td>
+                              <td>
+                                <div className="adm-account">
+                                  <span className={`adm-avatar tone-${tone}`}>{initialsOf(account)}</span>
+                                  <div className="adm-account-text">
+                                    <strong>{title}</strong>
+                                    <span>{order.author_name || account} · {order.user_details?.email || order.author_email || '—'}</span>
+                                  </div>
+                                </div>
+                              </td>
+                              <td>
+                                <span className={`adm-pill tone-${order.package_tier === 'complete' ? 'blue' : order.package_tier === 'improve' || order.is_express ? 'amber' : 'slate'}`}>
+                                  {order.package_label || (order.is_express ? 'Improve' : 'Check')}
+                                </span>
+                              </td>
+                              <td>
+                                <div className="adm-strong">₹{parseFloat(pay?.amount || order.price || 0).toFixed(2)}</div>
+                                <div className="adm-mono">{pay?.razorpay_payment_id || paymentStatusLabel(order)}</div>
+                              </td>
+                              <td>
+                                <span className={`adm-status is-${statusKey}`}>
+                                  <span className="adm-status-dot" />
+                                  {order.status}
+                                </span>
+                              </td>
+                              <td onClick={(e) => e.stopPropagation()}>
+                                <div className="adm-actions">
+                                  <button type="button" className="adm-icon-btn" title="Download manuscript" onClick={() => downloadQueueDocument(order)}>
+                                    <Download size={15} />
+                                  </button>
+                                  <button type="button" className="adm-icon-btn is-primary" title="Complete order" onClick={() => setSelectedOrder(order)}>
+                                    <CheckCircle2 size={15} />
+                                  </button>
+                                  <div className="adm-menu">
+                                    <button
+                                      type="button"
+                                      className="adm-icon-btn"
+                                      title="More"
+                                      onClick={() => setOpenQueueMenu(openQueueMenu === order.id ? null : order.id)}
+                                    >
+                                      <MoreHorizontal size={15} />
+                                    </button>
+                                    {openQueueMenu === order.id ? (
+                                      <div className="adm-menu-pop">
+                                        {order.status === 'Submitted' ? (
+                                          <button type="button" onClick={() => { setOpenQueueMenu(null); handleStartProcessing(order.id); }}>
+                                            Start Processing
+                                          </button>
+                                        ) : null}
+                                        <button type="button" onClick={() => { setOpenQueueMenu(null); setSelectedOrder(order); }}>
+                                          Complete Report
+                                        </button>
+                                        <button type="button" onClick={() => { setOpenQueueMenu(null); downloadQueueDocument(order); }}>
+                                          Download File
+                                        </button>
+                                      </div>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  {renderPager(queuePageData, setQueuePage, queuePageSize, setQueuePageSize, 'orders')}
+                </>
+              )}
+            </div>
           </div>
         )}
 
         {/* TAB 3: ORDER HISTORY */}
         {activeTab === 'history' && (
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-              <div style={{ minWidth: '280px', flex: '1 1 360px' }}>
-                <h2 style={{ fontSize: '26px' }}>Order History</h2>
-              </div>
-              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', width: '100%', maxWidth: '520px' }}>
-                <form onSubmit={handleHistorySearchSubmit} style={{ display: 'flex', flex: '1 1 260px', gap: '10px' }}>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Search document name or user ID"
-                    value={historySearch}
-                    onChange={(e) => setHistorySearch(e.target.value)}
-                  />
-                  <button type="submit" className="btn btn-primary" style={{ minWidth: '120px' }}>
-                    Search
-                  </button>
-                </form>
-                <button className="btn btn-secondary" onClick={() => { setHistorySearch(''); fetchHistory(); }}>
-                  Refresh
-                </button>
-              </div>
-            </div>
-
-            {loadingHistory ? (
-              <div className="spinner"></div>
+            {selectedHistoryOrder ? (
+              <AdminOrderDetail
+                orderId={selectedHistoryOrder.id}
+                initialOrder={selectedHistoryOrder}
+                onBack={() => setSelectedHistoryOrder(null)}
+              />
             ) : (
-              <div style={{ marginBottom: '20px', color: 'var(--text-muted)', fontSize: '14px' }}>
-                Showing <strong>{historyOrders.length}</strong> orders{historySearch ? ` · Search: "${historySearch}"` : ''}
-              </div>
-            )}
-            {loadingHistory ? null : historyOrders.length === 0 ? (
-              <div className="glass-card" style={{ padding: '60px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                No order history is available yet.
-              </div>
-            ) : (
-              <div className="table-container">
-                <table className="custom-table">
-                  <thead>
-                    <tr>
-                      <th>Order ID</th>
-                      <th>Manuscript</th>
-                      <th>Author</th>
-                      <th>Razorpay payment ID</th>
-                      <th>Transaction ID</th>
-                      <th>Payment</th>
-                      <th>Amount</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {historyOrders.map(order => {
-                      const pay = paymentOf(order);
-                      return (
-                      <tr
-                        key={order.id}
-                        className={`table-row-clickable ${selectedHistoryOrder?.id === order.id ? 'selected is-selected' : ''}`}
-                        onClick={() => setSelectedHistoryOrder(order)}
-                      >
-                        <td>#{order.id}</td>
-                        <td className="cell-stack">
-                          <strong>{order.paper_title || order.document?.split('?')[0].split('/').pop() || 'N/A'}</strong>
-                          <span>{order.user_details?.username || order.user} · {order.package_label || 'Check'}</span>
-                        </td>
-                        <td className="cell-stack">
-                          <strong>{order.author_name || '—'}</strong>
-                          <span>{order.author_email || ''}</span>
-                        </td>
-                        <td className="mono-id">{pay?.razorpay_payment_id || '—'}</td>
-                        <td className="mono-id">{pay?.transaction_id || '—'}</td>
-                        <td>{paymentStatusLabel(order)}</td>
-                        <td>₹{parseFloat(pay?.amount || order.price || 0).toFixed(2)}</td>
-                        <td>
-                          <span className={`badge badge-${order.status.toLowerCase().replace(' ', '-')}`}>
-                            {order.status}
-                          </span>
-                        </td>
-                      </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            {selectedHistoryOrder && (
-              <div className="record-card">
-                <div className="record-card-head">
-                  <div>
-                    <h3>Order #{selectedHistoryOrder.id}</h3>
-                    <p>Full manuscript, author, and Razorpay transaction record.</p>
+              <div className="adm-page">
+                <div className="adm-page-head">
+                  <div className="adm-page-title-wrap">
+                    <div className="adm-page-icon"><ListOrdered size={22} /></div>
+                    <div>
+                      <h2>Order History</h2>
+                      <p>Latest completed orders first. Open any row to view the full Zoho-style order record.</p>
+                    </div>
                   </div>
-                  <button className="btn btn-secondary" onClick={() => setSelectedHistoryOrder(null)}>
-                    Clear Selection
-                  </button>
+                  <div className="adm-page-actions">
+                    <button type="button" className="adm-btn adm-btn-secondary" onClick={exportHistoryCsv}>
+                      <Download size={15} /> Export
+                    </button>
+                    <button type="button" className="adm-btn adm-btn-primary" onClick={() => { setHistorySearch(''); setHistoryPage(1); fetchHistory(); }}>
+                      <RefreshCw size={15} /> Refresh
+                    </button>
+                  </div>
                 </div>
-                <SubmissionRecord order={selectedHistoryOrder} variant="admin" />
+
+                <div className="adm-panel">
+                  <form
+                    className="adm-filters"
+                    onSubmit={(e) => e.preventDefault()}
+                  >
+                    <div className="adm-search">
+                      <Search size={15} />
+                      <input
+                        type="search"
+                        placeholder="Search by manuscript, author, payment ID, or user..."
+                        value={historySearch}
+                        onChange={(e) => {
+                          setHistorySearch(e.target.value);
+                          setHistoryPage(1);
+                        }}
+                        autoComplete="off"
+                      />
+                    </div>
+                    <select
+                      className="adm-select"
+                      value={historyDatePreset}
+                      onChange={(e) => {
+                        setHistoryDatePreset(e.target.value);
+                        setHistoryPage(1);
+                      }}
+                      title="Filter by period"
+                    >
+                      <option value="all">All time</option>
+                      <option value="today">Today</option>
+                      <option value="week">This week</option>
+                      <option value="month">This month</option>
+                      <option value="date">Specific date</option>
+                      <option value="custom">Custom range</option>
+                    </select>
+                    {historyDatePreset === 'date' ? (
+                      <input
+                        type="date"
+                        className="adm-select"
+                        value={historyDateExact}
+                        onChange={(e) => {
+                          setHistoryDateExact(e.target.value);
+                          setHistoryPage(1);
+                        }}
+                        aria-label="Filter by date"
+                      />
+                    ) : null}
+                    {historyDatePreset === 'custom' ? (
+                      <>
+                        <input
+                          type="date"
+                          className="adm-select"
+                          value={historyDateFrom}
+                          onChange={(e) => {
+                            setHistoryDateFrom(e.target.value);
+                            setHistoryPage(1);
+                          }}
+                          aria-label="From date"
+                        />
+                        <input
+                          type="date"
+                          className="adm-select"
+                          value={historyDateTo}
+                          onChange={(e) => {
+                            setHistoryDateTo(e.target.value);
+                            setHistoryPage(1);
+                          }}
+                          aria-label="To date"
+                        />
+                      </>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="adm-btn adm-btn-secondary"
+                      onClick={() => {
+                        setHistorySearch('');
+                        setHistoryDatePreset('all');
+                        setHistoryDateExact('');
+                        setHistoryDateFrom('');
+                        setHistoryDateTo('');
+                        setHistoryPage(1);
+                      }}
+                    >
+                      <FilterX size={15} /> Clear
+                    </button>
+                  </form>
+
+                  {loadingHistory ? (
+                    <SectionLoader label="Loading order history…" />
+                  ) : historyPageData.total === 0 ? (
+                    <div className="adm-empty">No order history is available yet.</div>
+                  ) : (
+                    <>
+                      <div className="adm-table-wrap">
+                        <table className="adm-table">
+                          <thead>
+                            <tr>
+                              <th>#</th>
+                              <th>Order ID</th>
+                              <th>Submitted</th>
+                              <th>Manuscript</th>
+                              <th>Payment ID</th>
+                              <th>Amount</th>
+                              <th>Status</th>
+                              <th>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {historyPageData.items.map((order, idx) => {
+                              const pay = paymentOf(order);
+                              const when = formatListDate(order.created_at);
+                              const title = order.paper_title || fileLabel(order.document);
+                              const account = order.author_name || order.user_details?.username || 'User';
+                              const tone = avatarTone(account + order.id);
+                              return (
+                                <tr
+                                  key={order.id}
+                                  className="is-clickable"
+                                  onClick={() => setSelectedHistoryOrder(order)}
+                                >
+                                  <td className="adm-muted">{historyPageData.start + idx}</td>
+                                  <td><strong>#{order.id}</strong></td>
+                                  <td>
+                                    <div className="adm-datetime">
+                                      <strong>{when.date}</strong>
+                                      <span>{when.time}</span>
+                                    </div>
+                                  </td>
+                                  <td>
+                                    <div className="adm-account">
+                                      <span className={`adm-avatar tone-${tone}`}>{initialsOf(account)}</span>
+                                      <div className="adm-account-text">
+                                        <strong>{title}</strong>
+                                        <span>{account} · {order.author_email || order.user_details?.email || '—'}</span>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="adm-mono">{pay?.razorpay_payment_id || '—'}</td>
+                                  <td><strong>₹{parseFloat(pay?.amount || order.price || 0).toFixed(2)}</strong></td>
+                                  <td>
+                                    <span className="adm-status is-ready">
+                                      <span className="adm-status-dot" />
+                                      {order.status}
+                                    </span>
+                                  </td>
+                                  <td onClick={(e) => e.stopPropagation()}>
+                                    <div className="adm-actions">
+                                      <button
+                                        type="button"
+                                        className="adm-icon-btn is-primary"
+                                        title="View details"
+                                        onClick={() => setSelectedHistoryOrder(order)}
+                                      >
+                                        <Eye size={15} />
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                      {renderPager(historyPageData, setHistoryPage, historyPageSize, setHistoryPageSize, 'orders')}
+                    </>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -814,7 +1134,7 @@ export default function AdminPortal({ user }) {
               <div className="glass-card">
                 <h3 style={{ fontSize: '18px', marginBottom: '16px' }}>Registered Institutional Accounts</h3>
                 {loadingColleges ? (
-                  <div className="spinner"></div>
+                  <SectionLoader label="Loading institutional accounts…" />
                 ) : colleges.length === 0 ? (
                   <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
                     No colleges registered yet. Click "Register College" to add one.
@@ -968,82 +1288,207 @@ export default function AdminPortal({ user }) {
         {/* TAB 4: USER LOCKOUT TOOL */}
         {activeTab === 'users' && (
           <div>
-            <h2 style={{ fontSize: '24px', marginBottom: '16px' }}>User Account Management</h2>
-            <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '12px', marginBottom: '24px', maxWidth: '500px' }}>
-              <input type="text" placeholder="Search user by username or email..." className="form-control" value={searchUser} onChange={(e) => setSearchUser(e.target.value)} />
-              <button type="submit" className="btn btn-primary">Search</button>
-            </form>
-
-            {loadingUsers ? (
-              <div className="spinner"></div>
+            {selectedUser ? (
+              <AdminUserDetail
+                user={selectedUser}
+                onBack={() => setSelectedUser(null)}
+                onToggleBlock={handleToggleUserBlock}
+                onDelete={handleDeleteUser}
+              />
             ) : (
-              <div className="table-container">
-                <table className="custom-table">
-                  <thead>
-                    <tr>
-                      <th>User ID</th>
-                      <th>Account Info</th>
-                      <th>Role</th>
-                      <th>Phone</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map(u => (
-                      <tr key={u.id}>
-                        <td>#{u.id}</td>
-                        <td>
-                          <strong>{u.first_name} {u.last_name}</strong>
-                          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>@{u.username} • {u.email}</div>
-                        </td>
-                        <td>
-                          <span style={{ padding: '2px 8px', background: 'var(--bg-tertiary)', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>
-                            {u.role.toUpperCase()}
-                          </span>
-                          {u.college_name && <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{u.college_name}</div>}
-                        </td>
-                        <td>{u.phone || 'N/A'}</td>
-                        <td>
-                          <span className={`badge badge-${u.is_active ? 'ready' : 'submitted'}`}>
-                            {u.is_active ? 'Active' : 'Blocked'}
-                          </span>
-                        </td>
-                        <td>
-                          {u.role !== 'super_admin' ? (
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                              <button 
-                                className={`btn ${u.is_active ? 'btn-danger' : 'btn-accent'}`} 
-                                style={{ padding: '6px 12px', fontSize: '12px', color: u.is_active ? '#fff' : 'var(--bg-primary)' }}
-                                onClick={() => handleToggleUserBlock(u.id)}
-                              >
-                                {u.is_active ? 'Block Account' : 'Unblock Account'}
-                              </button>
-                              <button 
-                                className="btn"
-                                style={{ 
-                                  padding: '6px 10px', 
-                                  fontSize: '12px', 
-                                  background: 'rgba(239, 68, 68, 0.15)', 
-                                  color: '#ef4444', 
-                                  border: '1px solid rgba(239, 68, 68, 0.3)',
-                                  cursor: 'pointer',
-                                  borderRadius: '6px'
-                                }}
-                                title="Delete user"
-                                onClick={() => handleDeleteUser(u.id, u.email || u.username)}
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          ) : (
-                            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>System Administrator</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="adm-page">
+                <div className="adm-page-head">
+                  <div className="adm-page-title-wrap">
+                    <div className="adm-page-icon"><UserCog size={22} /></div>
+                    <div>
+                      <h2>User Account Management</h2>
+                      <p>Manage registered users, view their details, and control account access.</p>
+                    </div>
+                  </div>
+                  <div className="adm-page-actions">
+                    <button type="button" className="adm-btn adm-btn-secondary" onClick={exportUsersCsv}>
+                      <Download size={15} /> Export
+                    </button>
+                    <button type="button" className="adm-btn adm-btn-primary" onClick={() => { setUserPage(1); fetchUsers(); }}>
+                      <RefreshCw size={15} /> Refresh
+                    </button>
+                  </div>
+                </div>
+
+                <div className="adm-panel">
+                  <form className="adm-filters" onSubmit={(e) => e.preventDefault()}>
+                    <div className="adm-search">
+                      <Search size={15} />
+                      <input
+                        type="search"
+                        placeholder="Search by name, username, email, phone, or ID..."
+                        value={searchUser}
+                        onChange={(e) => {
+                          setSearchUser(e.target.value);
+                          setUserPage(1);
+                        }}
+                        autoComplete="off"
+                      />
+                    </div>
+                    <select
+                      className="adm-select"
+                      value={userRoleFilter}
+                      onChange={(e) => { setUserRoleFilter(e.target.value); setUserPage(1); }}
+                    >
+                      <option value="all">All Roles</option>
+                      <option value="b2c_student">B2C Student</option>
+                      <option value="b2b_student">B2B Student</option>
+                      <option value="college_admin">College Admin</option>
+                      <option value="super_admin">Super Admin</option>
+                    </select>
+                    <select
+                      className="adm-select"
+                      value={userStatusFilter}
+                      onChange={(e) => { setUserStatusFilter(e.target.value); setUserPage(1); }}
+                    >
+                      <option value="all">All Status</option>
+                      <option value="active">Active</option>
+                      <option value="blocked">Blocked</option>
+                    </select>
+                    <button
+                      type="button"
+                      className="adm-btn adm-btn-secondary"
+                      onClick={() => {
+                        setSearchUser('');
+                        setUserRoleFilter('all');
+                        setUserStatusFilter('all');
+                        setUserPage(1);
+                      }}
+                    >
+                      <FilterX size={15} /> Clear
+                    </button>
+                  </form>
+
+                  {loadingUsers ? (
+                    <SectionLoader label="Loading users…" />
+                  ) : usersPageData.total === 0 ? (
+                    <div className="adm-empty">No users found.</div>
+                  ) : (
+                    <>
+                      <div className="adm-table-wrap">
+                        <table className="adm-table">
+                          <thead>
+                            <tr>
+                              <th>#</th>
+                              <th>User ID</th>
+                              <th>Joined</th>
+                              <th>Account Info</th>
+                              <th>Role</th>
+                              <th>Phone</th>
+                              <th>Status</th>
+                              <th>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {usersPageData.items.map((u, idx) => {
+                              const name = `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username;
+                              const when = formatListDate(u.date_joined);
+                              const tone = avatarTone(u.username || u.email || u.id);
+                              return (
+                                <tr
+                                  key={u.id}
+                                  className="is-clickable"
+                                  onClick={() => setSelectedUser(u)}
+                                >
+                                  <td className="adm-muted">{usersPageData.start + idx}</td>
+                                  <td><strong>#{u.id}</strong></td>
+                                  <td>
+                                    <div className="adm-datetime">
+                                      <strong>{when.date}</strong>
+                                      <span>{when.time}</span>
+                                    </div>
+                                  </td>
+                                  <td>
+                                    <div className="adm-account">
+                                      <span className={`adm-avatar tone-${tone}`}>{initialsOf(name)}</span>
+                                      <div className="adm-account-text">
+                                        <strong>{name}</strong>
+                                        <span>{u.email || `@${u.username}`}</span>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td>
+                                    <span className={`adm-pill tone-${roleTone(u.role)}`}>
+                                      {String(u.role || '').toUpperCase()}
+                                    </span>
+                                  </td>
+                                  <td>{u.phone || '—'}</td>
+                                  <td>
+                                    <span className={`adm-status ${u.is_active ? 'is-active' : 'is-blocked'}`}>
+                                      <span className="adm-status-dot" />
+                                      {u.is_active ? 'Active' : 'Blocked'}
+                                    </span>
+                                  </td>
+                                  <td onClick={(e) => e.stopPropagation()}>
+                                    <div className="adm-actions">
+                                      <button
+                                        type="button"
+                                        className="adm-icon-btn is-primary"
+                                        title="View"
+                                        onClick={() => setSelectedUser(u)}
+                                      >
+                                        <Eye size={15} />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="adm-icon-btn"
+                                        title="Open profile actions"
+                                        onClick={() => setSelectedUser(u)}
+                                      >
+                                        <Pencil size={15} />
+                                      </button>
+                                      {u.role !== 'super_admin' ? (
+                                        <div className="adm-menu">
+                                          <button
+                                            type="button"
+                                            className="adm-icon-btn"
+                                            title="More"
+                                            onClick={() => setOpenUserMenu(openUserMenu === u.id ? null : u.id)}
+                                          >
+                                            <MoreHorizontal size={15} />
+                                          </button>
+                                          {openUserMenu === u.id ? (
+                                            <div className="adm-menu-pop">
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  setOpenUserMenu(null);
+                                                  handleToggleUserBlock(u.id);
+                                                }}
+                                              >
+                                                {u.is_active ? 'Block Account' : 'Unblock Account'}
+                                              </button>
+                                              <button
+                                                type="button"
+                                                className="is-danger"
+                                                onClick={() => {
+                                                  setOpenUserMenu(null);
+                                                  handleDeleteUser(u.id, u.email || u.username);
+                                                }}
+                                              >
+                                                Delete User
+                                              </button>
+                                            </div>
+                                          ) : null}
+                                        </div>
+                                      ) : null}
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                      {renderPager(usersPageData, setUserPage, userPageSize, setUserPageSize, 'users')}
+                    </>
+                  )}
+                </div>
               </div>
             )}
           </div>

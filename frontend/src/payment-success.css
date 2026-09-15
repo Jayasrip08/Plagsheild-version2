@@ -1,0 +1,315 @@
+.pay-success {
+  min-height: calc(100vh - 48px);
+  width: 100%;
+  display: grid;
+  place-items: center;
+  padding: 28px 20px 40px;
+  background:
+    radial-gradient(900px 420px at 12% -10%, rgba(21, 112, 239, 0.12), transparent 60%),
+    radial-gradient(700px 380px at 100% 0%, rgba(22, 163, 74, 0.10), transparent 55%),
+    linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+}
+
+.pay-success-card {
+  width: min(640px, 100%);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 40px 36px 32px;
+  box-shadow: 0 24px 48px -28px rgba(15, 23, 42, 0.28);
+  text-align: center;
+  animation: pay-success-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes pay-success-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.pay-success-mark {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 22px;
+}
+
+.pay-success-ring {
+  width: 96px;
+  height: 96px;
+  transform: rotate(-90deg);
+}
+
+.pay-success-ring-track,
+.pay-success-ring-fill {
+  fill: none;
+  stroke-width: 4;
+}
+
+.pay-success-ring-track {
+  stroke: #e2e8f0;
+}
+
+.pay-success-ring-fill {
+  stroke: #16a34a;
+  stroke-linecap: round;
+  stroke-dasharray: 264;
+  stroke-dashoffset: 264;
+  animation: pay-ring 0.9s 0.15s ease forwards;
+}
+
+@keyframes pay-ring {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.pay-success-check {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #16a34a;
+  transform: scale(0.4);
+  opacity: 0;
+  animation: pay-check 0.45s 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.pay-success-check svg {
+  width: 34px;
+  height: 34px;
+}
+
+@keyframes pay-check {
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.pay-success-kicker {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #16a34a;
+}
+
+.pay-success-card h2 {
+  margin: 0 0 10px;
+  font-family: var(--serif);
+  font-size: clamp(26px, 3vw, 32px);
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.pay-success-lead {
+  margin: 0 auto 24px;
+  max-width: 46ch;
+  color: #64748b;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.pay-success-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.pay-success-meta > div {
+  padding: 12px 14px;
+  border: 1px solid #e8eef5;
+  border-radius: 12px;
+  background: #f8fafc;
+  min-width: 0;
+}
+
+.pay-success-meta span {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  margin-bottom: 4px;
+}
+
+.pay-success-meta strong {
+  display: block;
+  font-size: 14px;
+  color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pay-success-progress {
+  text-align: left;
+  margin-bottom: 22px;
+}
+
+.pay-success-progress-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.pay-success-progress-head span {
+  font-size: 13px;
+  font-weight: 650;
+  color: #334155;
+}
+
+.pay-success-progress-head strong {
+  font-size: 13px;
+  color: #1570ef;
+  font-variant-numeric: tabular-nums;
+}
+
+.pay-success-progress-track {
+  height: 10px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.pay-success-progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #16a34a 0%, #1570ef 100%);
+  box-shadow: 0 0 0 1px rgba(21, 112, 239, 0.08);
+  transition: width 0.12s linear;
+  position: relative;
+}
+
+.pay-success-progress-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  animation: pay-sheen 1.4s linear infinite;
+}
+
+@keyframes pay-sheen {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.pay-success-stages {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.pay-success-stages li {
+  font-size: 12px;
+  color: #94a3b8;
+  padding-left: 18px;
+  position: relative;
+}
+
+.pay-success-stages li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.45em;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #cbd5e1;
+}
+
+.pay-success-stages li.is-done {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.pay-success-stages li.is-done::before {
+  background: #16a34a;
+}
+
+.pay-success-notes {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 22px;
+  text-align: left;
+}
+
+.pay-success-notes > div {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.pay-success-notes svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.pay-success-cta {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+}
+
+.pay-success-cta:disabled {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .pay-success-card {
+    padding: 32px 20px 24px;
+  }
+
+  .pay-success-meta {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pay-success-card,
+  .pay-success-ring-fill,
+  .pay-success-check,
+  .pay-success-progress-fill::after {
+    animation: none !important;
+  }
+
+  .pay-success-ring-fill {
+    stroke-dashoffset: 0;
+  }
+
+  .pay-success-check {
+    opacity: 1;
+    transform: none;
+  }
+}

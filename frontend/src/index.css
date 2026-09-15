@@ -124,6 +124,114 @@ a:hover {
   to { transform: rotate(360deg); }
 }
 
+/* Full-page loader — used while the app boots and while a portal's code chunk loads */
+.page-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  background: #ffffff;
+  font-family: var(--sans);
+}
+
+.page-loader-logo {
+  width: 44px;
+  height: 44px;
+  animation: page-loader-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes page-loader-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.94); }
+}
+
+.page-loader-bar {
+  position: relative;
+  width: 220px;
+  height: 5px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.page-loader-bar-fill {
+  position: absolute;
+  top: 0;
+  left: -40%;
+  height: 100%;
+  width: 40%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #1570ef, #3b82f6);
+  animation: page-loader-slide 1.2s ease-in-out infinite;
+}
+
+@keyframes page-loader-slide {
+  0% { left: -40%; }
+  60% { left: 100%; }
+  100% { left: 100%; }
+}
+
+.page-loader-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  letter-spacing: 0.01em;
+}
+
+/* Section-level loader — for a panel/tab/list refreshing within an already-loaded page */
+.section-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 56px 20px;
+  width: 100%;
+}
+
+.section-loader-bar {
+  position: relative;
+  width: 160px;
+  height: 4px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.section-loader-bar-fill {
+  position: absolute;
+  top: 0;
+  left: -40%;
+  height: 100%;
+  width: 40%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #1570ef, #3b82f6);
+  animation: page-loader-slide 1.2s ease-in-out infinite;
+}
+
+.section-loader-label {
+  font-size: 12.5px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .section-loader-bar-fill {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-loader-logo,
+  .page-loader-bar-fill {
+    animation: none;
+  }
+}
+
 .container {
   width: 100%;
   max-width: 1280px;
@@ -929,9 +1037,13 @@ select.form-control:focus {
   color: #0f172a;
 }
 
-.cell-stack strong {
-  display: block;
-  font-size: 13px;
+.custom-table .table-row-clickable {
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.custom-table .table-row-clickable:hover {
+  background: #f8fafc;
 }
 
 .cell-stack span,
@@ -966,6 +1078,462 @@ select.form-control:focus {
 .record-card-head p {
   font-size: 13px;
   color: var(--text-muted);
+}
+
+/* Zoho Books–style admin detail pages (Users + History) */
+.zb2-page {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.zb2-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.zb2-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.zb2-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  color: #2563eb;
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 0;
+}
+
+.zb2-back:hover {
+  color: #1d4ed8;
+}
+
+.zb2-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 10px;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 16px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.zb2-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.zb2-btn-primary {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+.zb2-btn-primary:hover:not(:disabled) {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  color: #ffffff;
+}
+
+.zb2-btn-ghost {
+  background: #ffffff;
+  color: #334155;
+  border-color: #e2e8f0;
+}
+
+.zb2-btn-ghost:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.zb2-btn-sm {
+  padding: 7px 12px;
+  font-size: 12px;
+  border-radius: 8px;
+}
+
+.zb2-card {
+  background: #ffffff;
+  border: 1px solid #e8eef5;
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  padding: 22px 24px;
+}
+
+.zb2-hero {
+  padding: 0;
+  overflow: hidden;
+}
+
+.zb2-hero-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: flex-start;
+  padding: 24px 24px 18px;
+}
+
+.zb2-hero-identity {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.zb2-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #2563eb;
+  flex-shrink: 0;
+}
+
+.zb2-avatar-lg {
+  width: 64px;
+  height: 64px;
+}
+
+.zb2-hero-title {
+  margin: 0;
+  font-family: var(--sans);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #0f172a;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.zb2-hero-sub {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.zb2-hero-aside {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.zb2-ref-id {
+  font-size: 13px;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 0.04em;
+}
+
+.zb2-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.zb2-pill-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.zb2-pill.is-success {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.zb2-pill.is-danger {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.zb2-pill.is-warn {
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+.zb2-pill.is-neutral {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.zb2-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid #eef2f7;
+  background: #fcfdff;
+}
+
+.zb2-metric {
+  padding: 16px 20px;
+  border-right: 1px solid #eef2f7;
+  min-width: 0;
+}
+
+.zb2-metric:last-child {
+  border-right: none;
+}
+
+.zb2-metric-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.zb2-metric-label svg {
+  color: #2563eb;
+}
+
+.zb2-metric strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.zb2-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.zb2-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 18px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+.zb2-card-title svg {
+  color: #2563eb;
+}
+
+.zb2-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.zb2-field {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.zb2-field-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #94a3b8;
+  padding-top: 1px;
+}
+
+.zb2-field-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.zb2-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 20px;
+  text-align: center;
+  color: #94a3b8;
+}
+
+.zb2-empty svg {
+  color: #cbd5e1;
+}
+
+.zb2-empty p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.zb2-submissions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.zb2-submission {
+  border: 1px solid #e8eef5;
+  border-radius: 12px;
+  background: #fbfcfe;
+  padding: 16px;
+}
+
+.zb2-submission-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.zb2-submission-top strong {
+  display: block;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.zb2-submission-top span:not(.zb2-pill) {
+  display: block;
+  margin-top: 3px;
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.zb2-submission-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 18px;
+}
+
+.zb2-submission-grid .zb2-field {
+  grid-template-columns: 1fr;
+  gap: 4px;
+}
+
+.zb2-file-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #eef2f7;
+}
+
+.zb2-file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.zb2-file-row,
+.zb2-inline-file {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.zb2-file-row {
+  padding: 12px 14px;
+  border: 1px solid #e8eef5;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.zb2-file-row strong {
+  display: block;
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.zb2-file-row span {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.zb2-page-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 4px 4px 8px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.zb2-page-footer span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+@media (max-width: 900px) {
+  .zb2-metrics,
+  .zb2-grid-2,
+  .zb2-submission-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .zb2-metric {
+    border-right: none;
+    border-bottom: 1px solid #eef2f7;
+  }
+
+  .zb2-metric:last-child {
+    border-bottom: none;
+  }
+
+  .zb2-hero-top,
+  .zb2-hero-aside {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .zb2-field {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .zb2-hero-title {
+    font-size: 22px;
+  }
 }
 
 .record-grid {

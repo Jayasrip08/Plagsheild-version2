@@ -33,9 +33,37 @@ class SupportTicket(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    last_message_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        ordering = ['-created_at']
+        ordering = ['-last_message_at', '-created_at']
 
     def __str__(self):
         return f'{self.get_category_display()} · {self.topic} (#{self.id})'
+
+
+class SupportMessage(models.Model):
+    SENDER_CHOICES = (
+        ('user', 'User'),
+        ('admin', 'Admin'),
+    )
+
+    ticket = models.ForeignKey(
+        SupportTicket,
+        on_delete=models.CASCADE,
+        related_name='messages',
+    )
+    sender = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='support_messages',
+    )
+    sender_role = models.CharField(max_length=10, choices=SENDER_CHOICES)
+    body = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f'Ticket #{self.ticket_id} · {self.sender_role} · {self.created_at:%Y-%m-%d %H:%M}'

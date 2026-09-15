@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
 import api, { getUserProfile, loginUser, registerUser, googleLoginUser } from './api'
-import StudentPortal from './StudentPortal'
-import AdminPortal from './AdminPortal'
 import LandingPage from './LandingPage'
+import PageLoader from './PageLoader'
 import logoImage from './images/nc.png'
+
+const StudentPortal = lazy(() => import('./StudentPortal'))
+const AdminPortal = lazy(() => import('./AdminPortal'))
 
 const AuthAnimation = lazy(() => import('./AuthAnimation'))
 
@@ -453,21 +455,20 @@ function App() {
   };
 
   if (loading) {
-    return (
-      <div className="loading-screen">
-        <div className="spinner"></div>
-        <p>Loading NovelCheckr Platform...</p>
-      </div>
-    );
+    return <PageLoader label="Loading NovelCheckr Platform…" />;
   }
 
   // Render Portal according to role (Super Admin or User)
   if (user) {
-    if (user.role === 'super_admin') {
-      return <AdminPortal user={user} setUser={setUser} />;
-    } else {
-      return <StudentPortal user={user} setUser={setUser} />;
-    }
+    return (
+      <Suspense fallback={<PageLoader label="Preparing your dashboard…" />}>
+        {user.role === 'super_admin' ? (
+          <AdminPortal user={user} setUser={setUser} />
+        ) : (
+          <StudentPortal user={user} setUser={setUser} />
+        )}
+      </Suspense>
+    );
   }
 
   if (viewMode === 'landing') {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import {
   History,
@@ -13,69 +13,49 @@ import {
   FileText,
   X,
   Download,
+  Search,
+  RefreshCw,
+  FilterX,
+  Eye,
+  CreditCard,
+  FileDown,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import api, { logout } from './api';
+import SectionLoader from './SectionLoader';
 import ProfilePage from './ProfilePage';
 import SubmitPaperForm from './SubmitPaperForm';
 import HelpSupport from './HelpSupport';
+import PaymentSuccess from './PaymentSuccess';
+import StatusPage from './StatusPage';
+import StudentOrderDetail from './StudentOrderDetail';
 import logoImage from './images/nc.png';
-import SubmissionRecord, { paymentOf, paymentStatusLabel } from './SubmissionRecord';
+import { paymentOf, paymentStatusLabel } from './SubmissionRecord';
+import {
+  formatListDate,
+  initialsOf,
+  avatarTone,
+  paginate,
+  fileLabel,
+  matchesSearch,
+} from './adminListHelpers';
 
-function CheckIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  );
-}
-
-function analysisSteps(order) {
-  const paid = order.status !== 'Pending Payment';
-  const processing = order.status === 'Processing' || order.status === 'Report Ready';
-  const ready = order.status === 'Report Ready';
-
-  return [
-    {
-      key: 'submitted',
-      title: 'Paper submitted',
-      detail: 'Manuscript received with complete submission details.',
-      state: paid ? 'complete' : 'current',
-    },
-    {
-      key: 'payment',
-      title: 'Payment confirmed',
-      detail: 'Similarity check fee has been recorded.',
-      state: paid ? 'complete' : 'pending',
-    },
-    {
-      key: 'processing',
-      title: 'File processing',
-      detail: 'Document prepared for licensed similarity analysis.',
-      state: paid ? 'complete' : 'pending',
-    },
-    {
-      key: 'analysis',
-      title: 'Similarity analysis',
-      detail: ready
-        ? 'Analysis finished.'
-        : processing
-          ? 'Your manuscript is currently being analysed.'
-          : 'Queued for licensed similarity checking.',
-      state: ready ? 'complete' : processing ? 'current' : paid ? 'current' : 'pending',
-    },
-    {
-      key: 'report',
-      title: 'Report generation',
-      detail: ready ? 'Detailed similarity report is available.' : 'Report will be generated after analysis.',
-      state: ready ? 'complete' : processing ? 'current' : 'pending',
-    },
-  ];
+function orderStatusTone(status = '') {
+  const s = String(status).toLowerCase();
+  if (s.includes('ready') || s.includes('completed')) return 'ready';
+  if (s.includes('process')) return 'process';
+  if (s.includes('pending')) return 'process';
+  if (s.includes('submit')) return 'submitted';
+  return 'submitted';
 }
 
 export default function StudentPortal({ user, setUser }) {
   const [activeTab, setActiveTabState] = useState(() => {
     try {
-      return window.sessionStorage.getItem('student-portal-active-tab') || 'new_check';
+      const saved = window.sessionStorage.getItem('student-portal-active-tab') || 'new_check';
+      // Never restore the transient payment success screen after a refresh.
+      return saved === 'payment_success' ? 'tracking' : saved;
     } catch {
       return 'new_check';
     }
@@ -84,7 +64,10 @@ export default function StudentPortal({ user, setUser }) {
   const setActiveTab = (tab) => {
     setActiveTabState(tab);
     try {
-      window.sessionStorage.setItem('student-portal-active-tab', tab);
+      window.sessionStorage.setItem(
+        'student-portal-active-tab',
+        tab === 'payment_success' ? 'tracking' : tab,
+      );
     } catch (e) {
       // ignore
     }
@@ -92,6 +75,10 @@ export default function StudentPortal({ user, setUser }) {
 
   const [orders, setOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
+  const [historySearch, setHistorySearch] = useState('');
+  const [historyStatusFilter, setHistoryStatusFilter] = useState('all');
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyPageSize, setHistoryPageSize] = useState(10);
   const [submittingOrder, setSubmittingOrder] = useState(false);
   const [formError, setFormError] = useState('');
 
@@ -117,6 +104,8 @@ export default function StudentPortal({ user, setUser }) {
     }
   };
   const [selectedRecord, setSelectedRecord] = useState(null);
+  const [paymentSuccessOrder, setPaymentSuccessOrder] = useState(null);
+  const [statusRefreshing, setStatusRefreshing] = useState(false);
   const [downloadModalOrder, setDownloadModalOrder] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     try {
@@ -170,7 +159,15 @@ export default function StudentPortal({ user, setUser }) {
     setLoadingOrders(true);
     try {
       const res = await api.get('orders/');
-      setOrders(res.data);
+      const list = (Array.isArray(res.data) ? res.data : [])
+        .slice()
+        .sort((a, b) => {
+          const tb = new Date(b.created_at || 0).getTime();
+          const ta = new Date(a.created_at || 0).getTime();
+          if (tb !== ta) return tb - ta;
+          return (b.id || 0) - (a.id || 0);
+        });
+      setOrders(list);
     } catch (e) {
       console.error("Failed to load orders history:", e);
     } finally {
@@ -320,27 +317,25 @@ export default function StudentPortal({ user, setUser }) {
     }
   };
 
+  const continueAfterPaymentSuccess = useCallback(() => {
+    setPaymentSuccessOrder(null);
+    setActiveTab('tracking');
+    fetchOrders();
+  }, []);
+
   const verifyPayment = async (payload) => {
     try {
       await api.post('payments/verify/', payload);
-      toast.success('Payment successful! Your document has been submitted for analysis.');
       fetchOrders();
       const res = await api.get(`orders/${payload.order_id}/`);
       setTrackedOrder(res.data);
-      setActiveTab('tracking');
-
-      // Auto refresh the page after 1.5 seconds so they see the success toast first.
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+      setPaymentSuccessOrder(res.data);
+      setActiveTab('payment_success');
     } catch (e) {
       console.error("Payment validation failed", e);
       toast.error(
         `Payment verification failed. If money was deducted, contact support with Order #${payload.order_id}.`
       );
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
     }
   };
 
@@ -382,6 +377,24 @@ export default function StudentPortal({ user, setUser }) {
     if (!order.document) return 'Manuscript';
     return order.document.split('?')[0].split('/').pop();
   };
+
+  const filteredHistoryOrders = orders.filter((order) => {
+    if (historyStatusFilter !== 'all' && order.status !== historyStatusFilter) return false;
+    const pay = paymentOf(order);
+    return matchesSearch(
+      historySearch,
+      order.id,
+      order.paper_title,
+      order.document,
+      order.author_name,
+      order.author_email,
+      order.package_label,
+      order.status,
+      pay?.razorpay_payment_id,
+      pay?.status,
+    );
+  });
+  const historyPageData = paginate(filteredHistoryOrders, historyPage, historyPageSize);
 
   return (
     <div className={`dashboard-layout has-app-sidebar ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
@@ -427,7 +440,17 @@ export default function StudentPortal({ user, setUser }) {
             <span className="nav-label">Support</span>
           </button>
           {trackedOrder && (
-            <button className={`nav-link ${activeTab === 'tracking' ? 'active' : ''}`} onClick={() => setActiveTab('tracking')} title="Status">
+            <button
+              className={`nav-link ${activeTab === 'tracking' || activeTab === 'payment_success' ? 'active' : ''}`}
+              onClick={() => {
+                if (paymentSuccessOrder) {
+                  continueAfterPaymentSuccess();
+                } else {
+                  setActiveTab('tracking');
+                }
+              }}
+              title="Status"
+            >
               <span className="nav-ico"><ScanLine size={18} strokeWidth={2} /></span>
               <span className="nav-label">Status</span>
             </button>
@@ -463,135 +486,276 @@ export default function StudentPortal({ user, setUser }) {
         )}
 
         {activeTab === 'history' && (
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <h2 style={{ fontSize: '28px' }}>Your Submissions History</h2>
-              <button className="btn btn-secondary" onClick={fetchOrders}>
-                Refresh List
-              </button>
-            </div>
-
-            {loadingOrders ? (
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
-                <div className="spinner"></div>
-              </div>
-            ) : orders.length === 0 ? (
-              <div className="glass-card" style={{ padding: '60px', textAlign: 'center' }}>
-                <p style={{ color: 'var(--text-muted)', marginBottom: '16px' }}>You have not submitted any documents yet.</p>
-                <button className="btn btn-primary" onClick={() => setActiveTab('new_check')}>
-                  New Document Check
-                </button>
-              </div>
+          <div className="adm-page">
+            {selectedRecord ? (
+              <StudentOrderDetail
+                orderId={selectedRecord.id}
+                initialOrder={selectedRecord}
+                onBack={() => setSelectedRecord(null)}
+                onTrack={(order) => {
+                  setTrackedOrder(order);
+                  setSelectedRecord(null);
+                  setActiveTab('tracking');
+                }}
+                onPay={(order) => initiatePayment(order)}
+              />
             ) : (
-              <div className="table-container">
-                <table className="custom-table">
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Manuscript</th>
-                      <th>Author</th>
-                      <th>Payment ID</th>
-                      <th>Payment</th>
-                      <th>Amount</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {orders.map((o) => {
-                      const pay = paymentOf(o);
-                      return (
-                      <tr
-                        key={o.id}
-                        className={selectedRecord?.id === o.id ? 'is-selected' : ''}
-                        onClick={() => setSelectedRecord(o)}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <td>#{o.id}</td>
-                        <td className="cell-stack">
-                          <strong>{documentName(o)}</strong>
-                          <span>{o.paper_type || 'Manuscript'} · {o.package_label || 'Check'}</span>
-                        </td>
-                        <td className="cell-stack">
-                          <strong>{o.author_name || '—'}</strong>
-                          <span>{o.author_email || o.author_institution || ''}</span>
-                        </td>
-                        <td className="mono-id">{pay?.razorpay_payment_id || '—'}</td>
-                        <td>
-                          <span className={`badge ${paymentStatusLabel(o) === 'Paid' ? 'badge-ready' : ''}`}>
-                            {paymentStatusLabel(o)}
-                          </span>
-                        </td>
-                        <td>₹{parseFloat(o.price).toFixed(2)}</td>
-                        <td>
-                          <span className={`badge badge-${o.status.toLowerCase().replace(/\s+/g, '-')}`} style={
-                            o.status === 'Pending Payment' ? { backgroundColor: 'rgba(234, 179, 8, 0.2)', color: '#eab308', border: '1px solid #eab308' } : {}
-                          }>
-                            {o.status}
-                          </span>
-                        </td>
-                        <td onClick={(e) => e.stopPropagation()}>
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            {o.status === 'Pending Payment' ? (
-                              <button className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => initiatePayment(o)}>
-                                Pay Now
-                              </button>
-                            ) : (
-                              <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => { setTrackedOrder(o); setActiveTab('tracking'); }}>
-                                Track
-                              </button>
-                            )}
-
-                            {!o.is_b2b && o.status !== 'Pending Payment' && (
-                              <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => downloadInvoice(o.id)}>
-                                Invoice
-                              </button>
-                            )}
-
-                            {o.status === 'Report Ready' && (
-                              o.is_expired ? (
-                                <span style={{ color: 'var(--danger)', fontSize: '11px', alignSelf: 'center' }}>Link Expired</span>
-                              ) : o.report_documents && o.report_documents.length > 1 ? (
-                                <button
-                                  type="button"
-                                  className="btn btn-accent"
-                                  style={{ padding: '6px 12px', fontSize: '12px', color: '#ffffff' }}
-                                  onClick={() => setDownloadModalOrder(o)}
-                                >
-                                  Download ({o.report_documents.length})
-                                </button>
-                              ) : (
-                                <a
-                                  href={o.report_documents?.[0]?.download_url || o.secure_download_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="btn btn-accent"
-                                  style={{ padding: '6px 12px', fontSize: '12px', color: '#ffffff' }}
-                                >
-                                  Download
-                                </a>
-                              )
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            {selectedRecord && (
-              <div className="record-card">
-                <div className="record-card-head">
-                  <div>
-                    <h3>Submission #{selectedRecord.id}</h3>
-                    <p>Manuscript, author, and Razorpay payment details for this document.</p>
+              <>
+                <div className="adm-page-head">
+                  <div className="adm-page-title-wrap">
+                    <div className="adm-page-icon"><History size={22} /></div>
+                    <div>
+                      <h2>Your Submissions History</h2>
+                      <p>Latest submissions first. Open any row for full manuscript and payment details.</p>
+                    </div>
                   </div>
-                  <button type="button" className="btn btn-secondary" onClick={() => setSelectedRecord(null)}>Close</button>
+                  <div className="adm-page-actions">
+                    <button type="button" className="adm-btn adm-btn-secondary" onClick={() => { setHistoryPage(1); fetchOrders(); }}>
+                      <RefreshCw size={15} /> Refresh
+                    </button>
+                    <button type="button" className="adm-btn adm-btn-primary" onClick={() => setActiveTab('new_check')}>
+                      <FilePlus2 size={15} /> New Check
+                    </button>
+                  </div>
                 </div>
-                <SubmissionRecord order={selectedRecord} />
-              </div>
+
+                <div className="adm-panel">
+                  <form className="adm-filters" onSubmit={(e) => e.preventDefault()}>
+                    <div className="adm-search">
+                      <Search size={15} />
+                      <input
+                        type="search"
+                        placeholder="Search by manuscript, author, payment ID, or order…"
+                        value={historySearch}
+                        onChange={(e) => {
+                          setHistorySearch(e.target.value);
+                          setHistoryPage(1);
+                        }}
+                        autoComplete="off"
+                      />
+                    </div>
+                    <select
+                      className="adm-select"
+                      value={historyStatusFilter}
+                      onChange={(e) => {
+                        setHistoryStatusFilter(e.target.value);
+                        setHistoryPage(1);
+                      }}
+                    >
+                      <option value="all">All Status</option>
+                      <option value="Pending Payment">Pending Payment</option>
+                      <option value="Submitted">Submitted</option>
+                      <option value="Processing">Processing</option>
+                      <option value="Report Ready">Report Ready</option>
+                    </select>
+                    <button
+                      type="button"
+                      className="adm-btn adm-btn-secondary"
+                      onClick={() => {
+                        setHistorySearch('');
+                        setHistoryStatusFilter('all');
+                        setHistoryPage(1);
+                      }}
+                    >
+                      <FilterX size={15} /> Clear
+                    </button>
+                  </form>
+
+                  {loadingOrders ? (
+                    <SectionLoader label="Loading your submissions…" />
+                  ) : historyPageData.total === 0 ? (
+                    <div className="adm-empty">
+                      {orders.length === 0 ? (
+                        <>
+                          You have not submitted any documents yet.
+                          <div style={{ marginTop: 14 }}>
+                            <button type="button" className="adm-btn adm-btn-primary" onClick={() => setActiveTab('new_check')}>
+                              <FilePlus2 size={15} /> New Document Check
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        'No submissions match this search.'
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="adm-table-wrap">
+                        <table className="adm-table">
+                          <thead>
+                            <tr>
+                              <th>#</th>
+                              <th>Order ID</th>
+                              <th>Submitted</th>
+                              <th>Manuscript</th>
+                              <th>Payment ID</th>
+                              <th>Amount</th>
+                              <th>Status</th>
+                              <th>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {historyPageData.items.map((order, idx) => {
+                              const pay = paymentOf(order);
+                              const when = formatListDate(order.created_at);
+                              const title = order.paper_title || fileLabel(order.document) || documentName(order);
+                              const author = order.author_name || user?.username || 'Author';
+                              const tone = avatarTone(author + order.id);
+                              const statusTone = orderStatusTone(order.status);
+                              return (
+                                <tr
+                                  key={order.id}
+                                  className={`is-clickable ${selectedRecord?.id === order.id ? 'is-selected' : ''}`}
+                                  onClick={() => setSelectedRecord(order)}
+                                >
+                                  <td className="adm-muted">{historyPageData.start + idx}</td>
+                                  <td><strong>#{order.id}</strong></td>
+                                  <td>
+                                    <div className="adm-datetime">
+                                      <strong>{when.date}</strong>
+                                      <span>{when.time}</span>
+                                    </div>
+                                  </td>
+                                  <td>
+                                    <div className="adm-account">
+                                      <span className={`adm-avatar tone-${tone}`}>{initialsOf(author)}</span>
+                                      <div className="adm-account-text">
+                                        <strong>{title}</strong>
+                                        <span>
+                                          {author}
+                                          {order.package_label ? ` · ${order.package_label}` : ''}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="adm-mono">{pay?.razorpay_payment_id || '—'}</td>
+                                  <td><strong>₹{parseFloat(pay?.amount || order.price || 0).toFixed(2)}</strong></td>
+                                  <td>
+                                    <span className={`adm-status is-${statusTone}`}>
+                                      <span className="adm-status-dot" />
+                                      {order.status}
+                                    </span>
+                                    <div className="adm-muted" style={{ marginTop: 4 }}>
+                                      {paymentStatusLabel(order)}
+                                    </div>
+                                  </td>
+                                  <td onClick={(e) => e.stopPropagation()}>
+                                    <div className="adm-actions">
+                                      <button
+                                        type="button"
+                                        className="adm-icon-btn is-primary"
+                                        title="View details"
+                                        onClick={() => setSelectedRecord(order)}
+                                      >
+                                        <Eye size={15} />
+                                      </button>
+                                      {order.status === 'Pending Payment' ? (
+                                        <button
+                                          type="button"
+                                          className="adm-icon-btn"
+                                          title="Pay now"
+                                          onClick={() => initiatePayment(order)}
+                                        >
+                                          <CreditCard size={15} />
+                                        </button>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          className="adm-icon-btn"
+                                          title="Track status"
+                                          onClick={() => {
+                                            setTrackedOrder(order);
+                                            setActiveTab('tracking');
+                                          }}
+                                        >
+                                          <ScanLine size={15} />
+                                        </button>
+                                      )}
+                                      {!order.is_b2b && order.status !== 'Pending Payment' ? (
+                                        <button
+                                          type="button"
+                                          className="adm-icon-btn"
+                                          title="Download invoice"
+                                          onClick={() => downloadInvoice(order.id)}
+                                        >
+                                          <FileDown size={15} />
+                                        </button>
+                                      ) : null}
+                                      {order.status === 'Report Ready' && !order.is_expired ? (
+                                        order.report_documents && order.report_documents.length > 1 ? (
+                                          <button
+                                            type="button"
+                                            className="adm-icon-btn"
+                                            title={`Download reports (${order.report_documents.length})`}
+                                            onClick={() => setDownloadModalOrder(order)}
+                                          >
+                                            <Download size={15} />
+                                          </button>
+                                        ) : (
+                                          <a
+                                            href={order.report_documents?.[0]?.download_url || order.secure_download_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="adm-icon-btn"
+                                            title="Download report"
+                                          >
+                                            <Download size={15} />
+                                          </a>
+                                        )
+                                      ) : null}
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <div className="adm-footer">
+                        <div className="adm-footer-meta">
+                          Showing <strong>{historyPageData.start}</strong> – <strong>{historyPageData.end}</strong> of <strong>{historyPageData.total}</strong> submissions
+                        </div>
+                        <div className="adm-pager">
+                          <label>
+                            Rows per page
+                            <select
+                              value={historyPageSize}
+                              onChange={(e) => {
+                                setHistoryPageSize(Number(e.target.value));
+                                setHistoryPage(1);
+                              }}
+                            >
+                              <option value={10}>10</option>
+                              <option value={25}>25</option>
+                              <option value={50}>50</option>
+                            </select>
+                          </label>
+                          <div className="adm-page-btns">
+                            <button
+                              type="button"
+                              className="adm-page-btn"
+                              disabled={historyPageData.page <= 1}
+                              onClick={() => setHistoryPage(historyPageData.page - 1)}
+                            >
+                              <ChevronLeft size={16} />
+                            </button>
+                            <button type="button" className="adm-page-btn is-active">{historyPageData.page}</button>
+                            <button
+                              type="button"
+                              className="adm-page-btn"
+                              disabled={historyPageData.page >= historyPageData.pages}
+                              onClick={() => setHistoryPage(historyPageData.page + 1)}
+                            >
+                              <ChevronRight size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </>
             )}
           </div>
         )}
@@ -604,129 +768,28 @@ export default function StudentPortal({ user, setUser }) {
           <HelpSupport orders={orders} />
         )}
 
+        {activeTab === 'payment_success' && paymentSuccessOrder && (
+          <PaymentSuccess
+            order={paymentSuccessOrder}
+            onContinue={continueAfterPaymentSuccess}
+          />
+        )}
+
         {activeTab === 'tracking' && trackedOrder && (
-          <div className="submit-page">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', gap: '16px' }}>
-              <div>
-                <h2 style={{ fontSize: '24px', marginBottom: '4px' }}>
-                  {trackedOrder.status === 'Report Ready' ? 'Report Ready' : 'Analysis in Progress'}
-                </h2>
-                <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
-                  {documentName(trackedOrder)}
-                  {trackedOrder.paper_type ? ` · ${trackedOrder.paper_type}` : ''}
-                </p>
-              </div>
-              <button
-                className="btn btn-secondary"
-                onClick={async () => {
-                  const res = await api.get(`orders/${trackedOrder.id}/`);
-                  setTrackedOrder(res.data);
-                  fetchOrders();
-                }}
-              >
-                Refresh Status
-              </button>
-            </div>
-
-            <div className="form-section analysis-card" style={{ padding: '8px 20px 12px' }}>
-              <div className="analysis-steps">
-                {analysisSteps(trackedOrder).map((step) => (
-                  <div key={step.key} className={`analysis-step ${step.state}`}>
-                    <div className="analysis-marker">
-                      {step.state === 'complete' ? (
-                        <CheckIcon />
-                      ) : step.state === 'current' ? (
-                        <span className="spinner" style={{ width: '12px', height: '12px', borderWidth: '2px' }} />
-                      ) : null}
-                    </div>
-                    <div className="analysis-step-copy">
-                      <strong>{step.title}</strong>
-                      <span>{step.detail}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {trackedOrder.status === 'Report Ready' && (
-              <div className="report-ready-panel">
-                <div className="report-score-label">Similarity Score</div>
-                <div
-                  className="report-score"
-                  style={{ color: trackedOrder.similarity_score > 25 ? 'var(--danger)' : 'var(--success)' }}
-                >
-                  {trackedOrder.similarity_score}%
-                </div>
-                {trackedOrder.is_expired ? (
-                  <p style={{ color: 'var(--danger)', fontWeight: 600 }}>
-                    This report download link has expired (48-hour validity).
-                  </p>
-                ) : (
-                  <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-                    {trackedOrder.report_documents && trackedOrder.report_documents.length > 0 ? (
-                      <div style={{ width: '100%', maxWidth: '520px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-main)', textAlign: 'left' }}>
-                          Verified Documents &amp; Reports ({trackedOrder.report_documents.length}):
-                        </div>
-                        {trackedOrder.report_documents.map((doc, idx) => (
-                          <div
-                            key={idx}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              padding: '12px 16px',
-                              background: '#ffffff',
-                              border: '1px solid var(--border-color)',
-                              borderRadius: '8px',
-                              boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' }}>
-                              <FileText size={18} color="var(--primary)" style={{ flexShrink: 0 }} />
-                              <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {doc.name}
-                              </span>
-                            </div>
-                            <a
-                              href={doc.download_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="btn btn-primary"
-                              style={{ padding: '6px 14px', fontSize: '12px', whiteSpace: 'nowrap' }}
-                              download
-                            >
-                              Download
-                            </a>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="report-actions">
-                        <a
-                          href={trackedOrder.secure_download_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn btn-primary"
-                        >
-                          View Detailed Report
-                        </a>
-                        <a
-                          href={trackedOrder.secure_download_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn btn-secondary"
-                          download
-                        >
-                          Download Report
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          <StatusPage
+            order={trackedOrder}
+            refreshing={statusRefreshing}
+            onRefresh={async () => {
+              setStatusRefreshing(true);
+              try {
+                const res = await api.get(`orders/${trackedOrder.id}/`);
+                setTrackedOrder(res.data);
+                fetchOrders();
+              } finally {
+                setStatusRefreshing(false);
+              }
+            }}
+          />
         )}
       </main>
       </div>

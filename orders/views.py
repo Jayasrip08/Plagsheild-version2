@@ -132,6 +132,9 @@ class OrderListCreateView(generics.ListCreateAPIView):
             queryset = Order.objects.exclude(status='Pending Payment')
             search_query = self.request.query_params.get('search', '').strip()
             status_query = self.request.query_params.get('status', '').strip()
+            user_id_query = self.request.query_params.get('user_id', '').strip()
+            if user_id_query and user_id_query.isdigit():
+                queryset = queryset.filter(user__id=int(user_id_query))
             if search_query:
                 search_filters = (
                     Q(document__icontains=search_query)

@@ -22,7 +22,10 @@ class UserSerializer(serializers.ModelSerializer):
             'college_name',
             'department',
             'is_active',
+            'date_joined',
+            'last_login',
         ]
+        read_only_fields = ['date_joined', 'last_login']
 
 
 class RegisterSerializer(serializers.ModelSerializer):

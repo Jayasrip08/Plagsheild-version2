@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Building2, Check, Mail, Phone, User } from 'lucide-react';
+import { Building2, Check, Mail, Phone, User, UserRound } from 'lucide-react';
 import api from './api';
 
 const ROLE_LABELS = {
@@ -8,20 +8,6 @@ const ROLE_LABELS = {
   college_admin: 'College administrator',
   super_admin: 'Platform administrator',
 };
-
-function initialsFor(form, user) {
-  const first = (form.first_name || '').trim();
-  const last = (form.last_name || '').trim();
-  if (first && last) return `${first[0]}${last[0]}`.toUpperCase();
-  if (first) return first.slice(0, 2).toUpperCase();
-  const source = form.username || user?.username || 'U';
-  return source.slice(0, 2).toUpperCase();
-}
-
-function displayName(form, user) {
-  const full = `${form.first_name || ''} ${form.last_name || ''}`.trim();
-  return full || form.username || user?.username || 'Your profile';
-}
 
 export default function ProfilePage({ user, onProfileUpdate }) {
   const [form, setForm] = useState({
@@ -157,17 +143,22 @@ export default function ProfilePage({ user, onProfileUpdate }) {
   }
 
   const roleLabel = ROLE_LABELS[role] || 'Account';
+  const fullName = `${form.first_name || ''} ${form.last_name || ''}`.trim()
+    || form.username
+    || user?.username
+    || 'Your account';
 
   return (
     <form className="profile-shell" onSubmit={handleSave} noValidate>
       <div className="profile-scroll">
-        <header className="profile-masthead">
-          <div className="profile-identity">
-            <span className="profile-avatar" aria-hidden="true">{initialsFor(form, user)}</span>
+        <header className="adm-page-head profile-page-head">
+          <div className="adm-page-title-wrap">
+            <div className="adm-page-icon"><UserRound size={22} /></div>
             <div>
-              <p className="profile-kicker">Account settings</p>
-              <h2>{displayName(form, user)}</h2>
-              <p>Update your name and affiliation. Email and phone are locked to this account.</p>
+              <h2>Your Profile</h2>
+              <p>
+                Update your name and affiliation for {fullName}. Email and phone are locked to this account.
+              </p>
             </div>
           </div>
           <div className="profile-chips">
